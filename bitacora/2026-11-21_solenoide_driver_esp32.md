@@ -174,11 +174,11 @@ Abrir: IN1 alto, IN2 bajo. Cerrar: ambos bajos. Mantención con PWM tras un puls
 | [`../piezas/generar_piezas.py`](../piezas/generar_piezas.py) | Generador paramétrico (numpy) de P1 y P2; editar los parámetros y volver a correr |
 | [`../piezas/P1_adaptador_M30_R14.stl`](../piezas/P1_adaptador_M30_R14.stl) | Adaptador de cuello M30×1,5 → R1/4 BSPT |
 | [`../piezas/P2_niple_R14_R14.stl`](../piezas/P2_niple_R14_R14.stl) | Niple doble R1/4 BSPT |
-| [`../codigo/solenoide_serial/solenoide_serial.ino`](../codigo/solenoide_serial/solenoide_serial.ino) | Sketch v2 de control por Monitor Serie |
+| [`../codigo/solenoide/solenoide.ino`](../codigo/solenoide/solenoide.ino) | Sketch v2 de control por Monitor Serie (durante la sesión se llamó `solenoide_serial.ino`) |
 
 ---
 
-## Apéndice — `solenoide_serial.ino` (v2)
+## Apéndice — `solenoide.ino` (v2, antes `solenoide_serial.ino`)
 
 ```cpp
 // Control manual de solenoide JT22-02 (12 V DC, ~2 A) con DRV8871 - ESP32
