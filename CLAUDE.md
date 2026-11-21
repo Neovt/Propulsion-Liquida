@@ -106,6 +106,22 @@ Uso: pruebas de telemetría con aire o agua a baja presión (máximo absoluto 8 
 - Pendiente de medir: diámetro exterior de la cara superior del cuello (≥ ~38 mm para el tope), profundidad de rosca del cuello (≥ 12 mm) y medida real del o-ring disponible.
 - Script paramétrico `generar_piezas.py` (numpy) genera los STL. Este script no está en el repo todavía.
 
+## Firma de autoría en los documentos Markdown
+
+Todo `.md` que Claude cree o modifique de forma sustancial en este repositorio (bitácoras, registros, notas técnicas) lleva, justo debajo del título, un bloque de firma para saber quién trabajó en él:
+
+```
+> **Autoría:** <nombre de la persona> (<usuario de GitHub>)
+> **Redacción asistida por:** Claude (<modelo>)
+> **Fecha:** AAAA-MM-DD · **Estado:** borrador | revisado
+```
+
+- **Autoría** es la persona que dirige el trabajo en la conversación, con su usuario de GitHub si lo indicó. Si no se sabe quién es, Claude lo pregunta; no inventa nombres ni firma a nombre de otra persona.
+- **Redacción asistida por** indica el modelo de Claude que escribió el texto. Si intervinieron varios, se listan todos.
+- **Estado** es `borrador` mientras nadie del equipo haya revisado el contenido. Solo la persona autora lo cambia a `revisado`.
+- Cuando otra persona edite un documento firmado, añade su propia línea `**Editado por:**` con la fecha; no se reemplaza la autoría original.
+- En los mensajes de commit no se escriben menciones con arroba, para no notificar a nadie sin querer.
+
 ## Reglas de trabajo para Claude
 
 - No presentes como verificadas las cifras marcadas como estimaciones (38–40 bar, 150 bar, 10 bar, etc.).
