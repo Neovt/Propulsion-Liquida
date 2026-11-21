@@ -171,10 +171,10 @@ Abrir: IN1 alto, IN2 bajo. Cerrar: ambos bajos. Mantención con PWM tras un puls
 
 | Archivo | Contenido |
 |---|---|
-| [`../../piezas/generar_piezas.py`](../../piezas/generar_piezas.py) | Generador paramétrico (numpy) de P1 y P2; editar los parámetros y volver a correr |
-| [`../../piezas/P1_adaptador_M30_R14.stl`](../../piezas/P1_adaptador_M30_R14.stl) | Adaptador de cuello M30×1,5 → R1/4 BSPT |
-| [`../../piezas/P2_niple_R14_R14.stl`](../../piezas/P2_niple_R14_R14.stl) | Niple doble R1/4 BSPT |
-| [`../../firmware/solenoide_serial/solenoide_serial.ino`](../../firmware/solenoide_serial/solenoide_serial.ino) | Sketch v2 de control por Monitor Serie |
+| [`../piezas/generar_piezas.py`](../piezas/generar_piezas.py) | Generador paramétrico (numpy) de P1 y P2; editar los parámetros y volver a correr |
+| [`../piezas/P1_adaptador_M30_R14.stl`](../piezas/P1_adaptador_M30_R14.stl) | Adaptador de cuello M30×1,5 → R1/4 BSPT |
+| [`../piezas/P2_niple_R14_R14.stl`](../piezas/P2_niple_R14_R14.stl) | Niple doble R1/4 BSPT |
+| [`../codigo/solenoide_serial/solenoide_serial.ino`](../codigo/solenoide_serial/solenoide_serial.ino) | Sketch v2 de control por Monitor Serie |
 
 ---
 

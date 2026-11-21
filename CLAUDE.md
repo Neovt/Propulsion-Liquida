@@ -108,14 +108,14 @@ Uso: pruebas de telemetría con aire o agua a baja presión (máximo absoluto 8 
 
 ## Bitácora de avances
 
-El avance del proyecto se acumula en `docs/bitacora/`, como un historial largo y secuencial.
+El avance del proyecto se acumula en `bitacora/`, como un historial largo y secuencial.
 
-- **Un archivo por avance**: `docs/bitacora/AAAA-MM-DD_tema.md`. Nunca se sobrescribe una entrada anterior; las correcciones van en una entrada nueva o en una sección de fe de erratas que cite la original.
+- **Un archivo por avance**: `bitacora/AAAA-MM-DD_tema.md`. Nunca se sobrescribe una entrada anterior; las correcciones van en una entrada nueva o en una sección de fe de erratas que cite la original.
 - **Extensas y con contexto**: una persona que no vio la conversación debe poder entender qué se hizo, por qué y con qué resultado.
 - **Por bloques, en orden cronológico**: objetivo y contexto, lo que se hizo paso a paso, mediciones y resultados con valores y unidades, problemas y correcciones, pendientes, archivos asociados.
 - Distinguir lo medido o verificado de lo supuesto o estimado, y decirlo explícitamente.
-- Cada entrada nueva se agrega al índice de `docs/bitacora/README.md`.
-- El código va en `firmware/` y las piezas (STL y generadores) en `piezas/`; las bitácoras los enlazan con rutas relativas y no los duplican.
+- Cada entrada nueva se agrega al índice de `bitacora/README.md`.
+- El código va en `codigo/` y las piezas (STL y generadores) en `piezas/`; las bitácoras los enlazan con rutas relativas y no los duplican.
 - Cada entrada lleva el bloque de firma descrito a continuación.
 
 ## Firma de autoría en los documentos Markdown
