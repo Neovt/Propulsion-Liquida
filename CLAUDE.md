@@ -104,7 +104,19 @@ Uso: pruebas de telemetría con aire o agua a baja presión (máximo absoluto 8 
 - **P2, niple R1/4 BSPT – R1/4 BSPT (cruz → solenoide JT22-02)**: doble macho cónico, 10 mm de rosca por lado, hexágono de 17 mm, agujero de 4 mm. ~5 g. Sella con teflón contra hembras BSPP.
 - Impresión: PETG, boquilla 0,4, eje vertical (P1 con la M30 sobre la cama), capa ≤ 0,12 mm, relleno 100 %, ≥ 5 perímetros.
 - Pendiente de medir: diámetro exterior de la cara superior del cuello (≥ ~38 mm para el tope), profundidad de rosca del cuello (≥ 12 mm) y medida real del o-ring disponible.
-- Script paramétrico `generar_piezas.py` (numpy) genera los STL. Este script no está en el repo todavía.
+- Script paramétrico `piezas/generar_piezas.py` (numpy) genera los STL, que también están en `piezas/`.
+
+## Bitácora de avances
+
+El avance del proyecto se acumula en `docs/bitacora/`, como un historial largo y secuencial.
+
+- **Un archivo por avance**: `docs/bitacora/AAAA-MM-DD_tema.md`. Nunca se sobrescribe una entrada anterior; las correcciones van en una entrada nueva o en una sección de fe de erratas que cite la original.
+- **Extensas y con contexto**: una persona que no vio la conversación debe poder entender qué se hizo, por qué y con qué resultado.
+- **Por bloques, en orden cronológico**: objetivo y contexto, lo que se hizo paso a paso, mediciones y resultados con valores y unidades, problemas y correcciones, pendientes, archivos asociados.
+- Distinguir lo medido o verificado de lo supuesto o estimado, y decirlo explícitamente.
+- Cada entrada nueva se agrega al índice de `docs/bitacora/README.md`.
+- El código va en `firmware/` y las piezas (STL y generadores) en `piezas/`; las bitácoras los enlazan con rutas relativas y no los duplican.
+- Cada entrada lleva el bloque de firma descrito a continuación.
 
 ## Firma de autoría en los documentos Markdown
 
