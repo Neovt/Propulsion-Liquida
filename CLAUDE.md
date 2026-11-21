@@ -115,7 +115,7 @@ El avance del proyecto se acumula en `bitacora/`, como un historial largo y secu
 - **Por bloques, en orden cronológico**: objetivo y contexto, lo que se hizo paso a paso, mediciones y resultados con valores y unidades, problemas y correcciones, pendientes, archivos asociados.
 - Distinguir lo medido o verificado de lo supuesto o estimado, y decirlo explícitamente.
 - Cada entrada nueva se agrega al índice de `bitacora/README.md`.
-- El código va en `codigo/` y las piezas (STL y generadores) en `piezas/`; las bitácoras los enlazan con rutas relativas y no los duplican.
+- El código va en `codigos/` y las piezas (STL y generadores) en `piezas/`; las bitácoras los enlazan con rutas relativas y no los duplican.
 - Cada entrada lleva el bloque de firma descrito a continuación.
 
 ## Firma de autoría en los documentos Markdown
