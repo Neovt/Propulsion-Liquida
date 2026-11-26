@@ -81,3 +81,15 @@ Con 2 L de queroseno a 15 g/s, la descarga dura unos **107 s**. Al aire libre el
 2. Confirmar la conexión real del Allison al tubo del banco (DIN 24° o abocinado 37°) y medir su rosca de montaje. Ajustar la espiga y el M24 si hace falta.
 3. Confirmar con el taller que Ø2 es la herramienta mínima.
 4. Fabricar en latón el cuerpo, la punta y los tres remolinadores; medir caudal contra ΔP y el ángulo del cono en el banco.
+
+## 8. Actualización 10:58 (complementa la sección 6, no la reemplaza)
+
+- Script v4 ejecutado en Fusion. Resultado del chequeo automático de interferencias:
+  - **Elemento:** ninguna inesperada. Solo aparecen los solapes de rosca esperados (cuerpo–punta y cuerpo–soporte del banco).
+  - **Mini motor:** ninguna inesperada. Solo los solapes de rosca esperados (cuerpo–punta y cuerpo–colector GOX).
+- Corte por el plano XZ revisado visualmente:
+  - Entrada macho con cono de 24°.
+  - Junta de cobre bajo el remolinador.
+  - Arandela de cobre entre la brida de la punta y el cuerpo.
+  - No hay ranuras abiertas.
+- Guardados en `GIP > Proyecto_liquido` como **"IGNIS Elemento inyector swirl v4"** e **"IGNIS Mini motor v4 (bosquejo)"**. La raíz de GIP solo contiene las carpetas `Proyecto_campanil` y `Proyecto_liquido`.
