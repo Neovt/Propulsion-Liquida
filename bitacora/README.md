@@ -15,6 +15,7 @@ Código y archivos de fabricación viven fuera de las bitácoras y se referencia
 | 2026-11-21 | [Solenoide, driver y ESP32](2026-11-21_solenoide_driver_esp32.md) | Revisión del proto-tanque y compras, piezas impresas P1/P2, cableado de la solenoide JT22-02, driver DRV8871 con ESP32, problemas resueltos (puerto COM, fuente en CC, PWM de mantención) | borrador |
 | 2026-11-26 | [Inyector elemento y mini motor](2026-11-26_inyector_elemento_y_mini_motor.md) | Plan de prueba del transmisor, inyector impreso PETG, datos internos del Allison 250 (CFD de A. Espinoza), elemento inyector CNC v3 (herramienta mínima Ø2) y bosquejo de mini motor | borrador |
 | 2026-11-26 | [Elemento inyector v4 y fe de erratas](2026-11-26_elemento_inyector_v4.md) | Corrige el caudal del Allison (ensayo: ~14 g/s a 14 bar), entrada macho M12x1,5 24°, sellos de cobre sin ranuras, 15 g/s a 7,5 bar con herramienta mínima Ø2 y remolinadores de calibración | borrador |
+| 2026-11-26 | [Elemento inyector v5](2026-11-26_elemento_inyector_v5.md) | Brida de la punta Ø26 que tapa la arandela de cobre; sin agujeros de alambre de seguridad; cámara del bosquejo sin puertos laterales | borrador |
 
 ## Cómo agregar una entrada
 
