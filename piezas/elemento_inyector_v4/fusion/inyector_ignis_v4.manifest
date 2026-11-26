@@ -1,0 +1,8 @@
+{
+	"autodeskProduct": "Fusion",
+	"type": "script",
+	"author": "GIP UdeC - IGNIS",
+	"description": {"": "Elemento inyector v4 (15 g/s a 7,5 bar, entrada macho M12x1,5 24 grados, herramienta minima 2 mm) + bosquejo de mini motor."},
+	"supportedOS": "windows|mac",
+	"editEnabled": true
+}
