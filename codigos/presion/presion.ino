@@ -8,13 +8,16 @@
 // Conexiones:
 //   Sensor  rojo (alimentación) -> +12 V de la fuente
 //   Sensor  negro (GND)         -> GND común
-//   Sensor  amarillo (señal)    -> ADS1115 A0
+//   Sensor  amarillo (señal)    -> ADS1115 A1  (soldado en A1; ajustar CANAL si se mueve)
 //   ADS1115 VDD -> 5 V (VIN del ESP32), GND -> GND común, ADDR -> GND (dirección 0x48)
 //   ADS1115 SDA/SCL -> conversor de nivel 4 canales -> ESP32 GPIO21 (SDA) / GPIO22 (SCL)
 //   Conversor de nivel: HV = 5 V, LV = 3V3 del ESP32, GND común
 //
 // Biblioteca: "Adafruit ADS1X15" (Administrador de bibliotecas de Arduino IDE).
 // Ganancia 2/3 (±6,144 V): necesaria porque la salida llega a 4,5 V.
+//
+// v2 (2026-11-26): el canal es una constante (CANAL). La v1 leía A0, pero el cable estaba
+// soldado en A1: el pin A0 flotaba y daba un valor fijo (~0,65 V) que no dependía del sensor.
 
 #include <Wire.h>
 #include <Adafruit_ADS1X15.h>
@@ -23,6 +26,8 @@ Adafruit_ADS1115 ads;
 
 const int PIN_SDA = 21;
 const int PIN_SCL = 22;
+
+const uint8_t CANAL = 1;      // canal del ADS donde está el cable amarillo (0=A0, 1=A1, 2=A2, 3=A3)
 
 const float V_MIN = 0.5f;     // salida a 0 bar
 const float V_MAX = 4.5f;     // salida a fondo de escala
@@ -36,7 +41,7 @@ unsigned long tUltima = 0;
 float leerVoltios() {
   float suma = 0;
   for (int i = 0; i < N_PROM; i++) {
-    suma += ads.computeVolts(ads.readADC_SingleEnded(0));
+    suma += ads.computeVolts(ads.readADC_SingleEnded(CANAL));
   }
   return suma / N_PROM;
 }
@@ -54,7 +59,7 @@ void setup() {
   }
   ads.setGain(GAIN_TWOTHIRDS);                 // +-6,144 V
   ads.setDataRate(RATE_ADS1115_128SPS);
-  Serial.println("Listo. Salida: t_ms,volts,bar   (comandos: zero / reset)");
+  Serial.printf("Listo (canal A%d). Salida: t_ms,volts,bar   (comandos: zero / reset)\n", CANAL);
 }
 
 void loop() {
