@@ -3,13 +3,14 @@
 > **Autoría:** Matías Morales (matydrox)
 > **Redacción asistida por:** Claude (Sonnet 5.5)
 > **Fecha:** 2026-11-21 · **Estado:** borrador
+> **Editado por:** Claude (Opus 5.5), 2026-11-26 — agrega `presion/`
 
 Aquí vive todo el código del proyecto (control, adquisición de datos, pruebas). Cada componente tiene su propia carpeta, y dentro de ella el programa lleva el mismo nombre que la carpeta. Esa regla es la que exige Arduino IDE para abrir un sketch.
 
 ```
 codigos/
   solenoide/solenoide.ino
-  presion/presion.ino          ← futuro: lectura del transductor
+  presion/presion.ino
 ```
 
 ## Contenido
@@ -17,6 +18,7 @@ codigos/
 | Carpeta | Qué hace | Hardware | Estado |
 |---|---|---|---|
 | [`solenoide/`](solenoide/solenoide.ino) | Abre y cierra la solenoide JT22-02 por el Monitor Serie (`open`, `close`, `status`, `hold NN`) | ESP32 DevKit + driver DRV8871 | probado sin presión |
+| [`presion/`](presion/presion.ino) | Lee el transmisor XDB401 (0–40 bar, 0,5–4,5 V) con ADS1115 y entrega CSV `t_ms,volts,bar`; comandos `zero` / `reset` | ESP32 + ADS1115 + XDB401 | **sin probar** |
 
 ## Cómo usarlos
 

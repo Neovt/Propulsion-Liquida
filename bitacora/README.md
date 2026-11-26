@@ -13,6 +13,7 @@ Código y archivos de fabricación viven fuera de las bitácoras y se referencia
 | Fecha | Entrada | Resumen | Estado |
 |---|---|---|---|
 | 2026-11-21 | [Solenoide, driver y ESP32](2026-11-21_solenoide_driver_esp32.md) | Revisión del proto-tanque y compras, piezas impresas P1/P2, cableado de la solenoide JT22-02, driver DRV8871 con ESP32, problemas resueltos (puerto COM, fuente en CC, PWM de mantención) | borrador |
+| 2026-11-26 | [Inyector elemento y mini motor](2026-11-26_inyector_elemento_y_mini_motor.md) | Plan de prueba del transmisor, inyector impreso PETG, datos internos del Allison 250 (CFD de A. Espinoza), elemento inyector CNC v3 (herramienta mínima Ø2) y bosquejo de mini motor | borrador |
 
 ## Cómo agregar una entrada
 
