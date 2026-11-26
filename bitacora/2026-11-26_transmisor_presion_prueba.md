@@ -38,8 +38,8 @@ La fuente es única, con una sola salida (todavía no hay una dedicada por compo
 ## 4. Resultado (reportado por Matías, de memoria)
 
 - Con el tanque abierto y el cable amarillo en A1, los volts coinciden con el multímetro (~0,50 V).
-- Presión en reposo: unos **−0,005 bar**.
-- Con un soplido en la boca del sensor, la lectura subió hasta **~0,004** (cifra recordada, por confirmar: no hay registro de la sesión). Un soplido de boca debería dar entre 0,05 y 0,15 bar, así que conviene repetirlo con una referencia real, p. ej. una jeringa o un manómetro.
+- **Cifras de memoria, no registradas y sin confirmar.** Matías recuerda que la lectura en reposo era un pequeño valor **negativo** y que al soplar subió a un valor **positivo** de la misma magnitud (mismo número de decimales). Lo más probable es **−0,05 bar en reposo y +0,040 bar al soplar**, es decir, un salto de unos 0,09 bar. Una primera versión de esta entrada decía −0,005 y 0,004; era un cero de más, y queda corregida aquí. Es un salto razonable para un soplido fuerte de boca (del orden de 0,05–0,15 bar) y confirma que el sensor responde.
+- **Por repetir con registro:** anotar la lectura en reposo y el máximo al soplar, o mejor, probar con una referencia (jeringa o manómetro).
 - El cero se ajustará más adelante.
 
 **Estado:** el transmisor y la cadena de lectura **funcionan a presión atmosférica**. No se ha comprobado a presión real: ni la escala, ni la linealidad, ni la estabilidad al conmutar la solenoide.
