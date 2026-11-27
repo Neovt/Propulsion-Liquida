@@ -30,7 +30,8 @@ Todo lo de esta entrada viene del relato de Matías después de la prueba. **No 
 ### Montaje
 - Compresor de aire, conectado al tanque por una **válvula de bola manual**.
 - Proto-tanque con la cruz de 1/4", el transmisor XDB401 y la solenoide JT22-02.
-- Adaptador **P2 macho–macho impreso en PETG**, reimpreso más macizo para esta prueba.
+- Adaptador **P2 macho–macho impreso en PETG**, reimpreso más macizo para esta prueba. Es una unión temporal: el tubo sifón todavía no llega, así que aún no se pueden hacer las juntas definitivas con los racores de compresión.
+- Fluido: **solo aire**.
 - ESP32 con `banco.ino` v2, conectado por USB a la interfaz `banco.html` en Chrome.
 
 ### Procedimiento (según Matías)
@@ -49,7 +50,7 @@ Todo lo de esta entrada viene del relato de Matías después de la prueba. **No 
 | Lectura y gráfico | Bien. Se ve más ruido que en la simulación, pero no molesta |
 | Fijar presión (1 bar) | **Funcionó**, pero la válvula abría y cerraba muy seguido: el ruido de la lectura cruzaba la banda de 0,05 bar |
 | Interfaz | Funcionó bien en general |
-| Desconexiones del ESP32 | **~3 veces en ~15 minutos**. Matías cree, sin estar seguro, que ocurrió **cada vez que encendió el compresor** para cargar presión. Al presionar "Conectar" se recuperaba al tiro |
+| Desconexiones del ESP32 | **~3 veces en ~15 minutos**. Matías cree, sin estar seguro (podría ser casualidad), que ocurrieron con el compresor **ya funcionando, unos 15 s después de encenderlo**. El compresor estaba **cerca de la electrónica**. La interfaz mostraba "Desconectado" arriba; se recuperaba presionando "Conectar" y eligiendo el COM7. **Nunca ocurrió con la válvula abierta** |
 | Grabación de datos | **No se hizo** (olvido). Hay un video de la prueba |
 
 ## 3. Análisis de las desconexiones (hipótesis, no verificadas)
@@ -59,9 +60,9 @@ Que coincidan con el arranque del compresor apunta a una **perturbación eléctr
 1. **Ruido o caída de voltaje al arrancar el motor del compresor.** Puede reiniciar el ESP32 o hacer que el PC pierda el dispositivo USB por un instante.
 2. **Bucle de tierra** entre el PC, la fuente de 12 V y el compresor.
 
-**Cómo distinguirlo:** si después de la desconexión el registro de eventos muestra de nuevo **"LISTO banco v2"**, el ESP32 **se reinició**. Si no lo muestra, solo se cortó el USB.
+**Lo que indica el síntoma:** la interfaz pasó a "Desconectado" y hubo que volver a elegir el COM7. Eso pasa cuando **Windows pierde el puerto USB**. Un reinicio del ESP32 por sí solo no cerraría el puerto, porque el chip USB (CP2102) se alimenta del cable. Lo más probable, entonces, es una **interrupción del enlace USB** por ruido electromagnético del compresor, que estaba cerca de la electrónica y del cable, y no un problema del programa.
 
-**Por confirmar:** si la válvula estaba abierta durante alguna desconexión, ¿se cerró sola? Así debería ser, por el cierre por pérdida de comunicación (2 s) o por el reinicio.
+**Prueba pendiente (pedida por Matías):** abrir la válvula y **desconectar el USB a propósito**, para comprobar que se cierra sola en ~2 s. En esta prueba nunca hubo una desconexión con la válvula abierta, así que no está verificado.
 
 ## 4. Mejoras propuestas
 
@@ -72,12 +73,13 @@ Que coincidan con el arranque del compresor apunta a una **perturbación eléctr
    - pedir que la presión esté sobre la banda durante un tiempo mínimo antes de abrir.
 
    Hay que conservar la lectura sin filtrar para el gráfico y la grabación.
-3. **Inmunidad al compresor:** enchufar el compresor en otro circuito o alargador, separar sus cables del USB y del ESP32, probar un hub USB con alimentación propia o una ferrita en el cable USB.
+3. **Inmunidad al compresor:** alejar el compresor de la electrónica, enchufarlo en otro circuito o alargador, separar sus cables del USB y del ESP32, probar un hub USB con alimentación propia o una ferrita en el cable USB.
 4. **Recordatorio de grabación:** que la interfaz avise si se abre la válvula sin estar grabando.
 5. **Fuga en la válvula de bola:** revisar los o-rings y las uniones de esa zona antes de pasar de 1,4 bar.
 
 ## 5. Pendientes
 
+- **Prueba de seguridad:** con la válvula abierta, desconectar el USB a propósito y verificar que se cierra sola en ~2 s.
 - Repetir la prueba **grabando** (CSV) para tener registro cuantitativo: estanqueidad, curvas de descarga y fijar presión.
 - Comparar la lectura con un manómetro de referencia (escala y linealidad).
 - Corregir la fuga cerca de la válvula de bola y subir en escalones hasta 3 bar.
