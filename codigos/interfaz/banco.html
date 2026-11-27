@@ -72,6 +72,8 @@
   .marca { position: absolute; top: -3px; bottom: -3px; width: 2px; }
   #detalle { display: flex; gap: 26px; margin-top: 12px; color: var(--suave); }
   #detalle b { color: var(--tinta); font-weight: 500; }
+  #btnCarga { font-size: 12px; padding: 3px 9px; border-color: var(--linea); color: var(--suave); }
+  #btnCarga.parada { border-color: var(--tinta); color: var(--tinta); }
   .normal #presion { color: var(--abierta); }
   .normal #zona { background: var(--abierta); color: #fff; }
   .aviso #presion { color: var(--aviso); }
@@ -138,6 +140,7 @@
   <h1>IGNIS · Banco de ensayo</h1>
   <span id="conexion"><span class="punto" id="puntoCx"></span><span id="textoCx">Desconectado</span></span>
   <span class="esp"></span>
+  <button id="btnCarga" disabled title="Solo en modo demo: el banco real aún no tiene válvula de carga">Detener carga</button>
   <span class="mono" id="tiempoGrab"></span>
   <button id="btnGrabar" disabled>Grabar</button>
   <button id="btnConectar">Conectar</button>
@@ -173,7 +176,7 @@
 
   <section id="panelGrafico">
     <div class="cab">
-      <span class="etq">Últimos 30 s</span>
+      <span class="etq">Últimos 60 s</span>
       <span id="leyenda"><span><i style="border-color:var(--tinta)"></i>presión</span><span><i style="border-color:var(--aviso);border-top-style:dashed"></i>alarma</span><span><i style="border-color:var(--peligro);border-top-style:dashed"></i>purga</span><span><i style="border-color:#cfe4d7;border-top-width:8px"></i>válvula abierta</span></span>
     </div>
     <div id="marcoGrafico"><canvas id="grafico"></canvas></div>
@@ -200,7 +203,7 @@
 "use strict";
 const $ = id => document.getElementById(id);
 const DEMO = new URLSearchParams(location.search).has("demo");
-const VENTANA_S = 30;
+const VENTANA_S = 60;
 
 // ---------------- Estado ----------------
 const st = {
@@ -259,6 +262,7 @@ function conectado(como) {
   $("textoCx").textContent = "Conectado · " + como;
   $("btnConectar").textContent = "Desconectar";
   ["btnValvula", "btnPulso", "btnAplicar", "btnCero", "btnGrabar"].forEach(id => $(id).disabled = false);
+  $("btnCarga").disabled = !DEMO;
 }
 
 async function desconectar() {
@@ -277,7 +281,7 @@ function desconectado() {
   $("puntoCx").className = "punto mal";
   $("textoCx").textContent = "Desconectado (el ESP32 cierra la válvula solo)";
   $("btnConectar").textContent = "Conectar";
-  ["btnValvula", "btnPulso", "btnAplicar", "btnCero", "btnGrabar"].forEach(id => $(id).disabled = true);
+  ["btnValvula", "btnPulso", "btnAplicar", "btnCero", "btnGrabar", "btnCarga"].forEach(id => $(id).disabled = true);
   st.p = null; pintarPresion();
 }
 
@@ -329,6 +333,13 @@ $("btnAplicar").onclick = () => {
 };
 $("btnCero").onclick = () => {
   if (confirm("¿El tanque está abierto a la atmósfera? Se tomará la lectura actual como 0 bar.")) enviar("ZERO");
+};
+$("btnCarga").onclick = () => {
+  if (!DEMO) return;
+  simulador.cargando = !simulador.cargando;
+  $("btnCarga").textContent = simulador.cargando ? "Detener carga" : "Reanudar carga";
+  $("btnCarga").classList.toggle("parada", !simulador.cargando);
+  simulador.ev(simulador.cargando ? "CARGA reanudada (demo)" : "CARGA detenida (demo)");
 };
 $("btnMax").onclick = () => { st.maximo = st.p; };
 $("btnGrabar").onclick = () => grab ? detenerGrabacion() : iniciarGrabacion();
@@ -433,7 +444,7 @@ function pintarGrafico() {
     cx.fillText(p.toFixed(paso < 1 ? 1 : 0), iz - 6, y);
   }
   cx.textAlign = "center"; cx.textBaseline = "top";
-  for (let s = 0; s <= VENTANA_S; s += 5) {
+  for (let s = 0; s <= VENTANA_S; s += 10) {
     cx.textAlign = s === 0 ? "right" : s === VENTANA_S ? "left" : "center";
     cx.fillText(s === 0 ? "ahora" : "−" + s + " s", X(ahora - s * 1000), H - ab + 6);
   }
@@ -475,7 +486,7 @@ function cuadro() {
 // ---------------- Simulador (?demo) ----------------
 // Imita banco.ino: tanque que se presuriza con un compresor lento y se descarga al abrir.
 const simulador = {
-  t0: 0, p: 0, abierta: false, pulsoFin: 0, purgando: false, offset: 0, timer: null, tAb: 0,
+  t0: 0, p: 0, cargando: true, abierta: false, pulsoFin: 0, purgando: false, offset: 0, timer: null, tAb: 0,
   iniciar() {
     this.t0 = performance.now(); this.p = 0;
     setTimeout(() => { linea("E,0,LISTO banco v1 (demo)"); linea(`S,${st.alarma},${st.purga},${st.maxAb},0.000`); }, 100);
@@ -499,7 +510,7 @@ const simulador = {
   },
   paso() {
     const dt = 0.05;
-    this.p += dt * 0.12;                                  // compresor lento
+    if (this.cargando) this.p += dt * 0.12;               // compresor lento
     if (this.abierta) this.p -= dt * this.p * 0.9;        // descarga
     this.p = Math.max(0, this.p);
     const lect = this.p - this.offset + (Math.random() - .5) * 0.02;

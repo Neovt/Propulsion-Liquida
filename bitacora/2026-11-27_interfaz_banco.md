@@ -19,12 +19,12 @@ Con el transmisor y la solenoide funcionando por separado ([prueba del 26-11](20
 | Pérdida de comunicación | La válvula se cierra a los 2 s (estado seguro; la solenoide es NC) |
 | Sobrepresión | Alarma (aviso) y **purga automática**: sobre la presión de purga la válvula se abre para descargar y se cierra 0,3 bar más abajo |
 | Límites iniciales | Alarma 3 bar, purga 4 bar. La purga no se puede fijar sobre 8 bar (piezas impresas) |
-| Gráfico | Últimos 30 s |
+| Gráfico | Últimos 60 s |
 
 ## 3. Lo hecho
 
 - [`../codigos/banco/banco.ino`](../codigos/banco/banco.ino): lectura (A1), control de la válvula (misma lógica v2 de mantención al 70 %), comandos `OPEN`, `CLOSE`, `PULSE s`, `ZERO`, `ALARM`, `PURGE`, `MAXOPEN`, latido `HB`, y tiempo máximo abierta (60 s por defecto). Cero y límites se guardan en la memoria del ESP32.
-- [`../codigos/interfaz/banco.html`](../codigos/interfaz/banco.html): presión grande con colores por zona, barra con las marcas de alarma y purga, máximo de la sesión, estado de la válvula con tiempo abierta, botón grande abrir/cerrar, pulso, gráfico de 30 s con las aperturas marcadas, ajustes, cero, registro de eventos y grabación a CSV.
+- [`../codigos/interfaz/banco.html`](../codigos/interfaz/banco.html): presión grande con colores por zona, barra con las marcas de alarma y purga, máximo de la sesión, estado de la válvula con tiempo abierta, botón grande abrir/cerrar, pulso, gráfico de 60 s con las aperturas marcadas, ajustes, cero, registro de eventos y grabación a CSV.
 - Modo demostración (`banco.html?demo`) con un simulador del tanque.
 
 ## 4. Verificado y no verificado
