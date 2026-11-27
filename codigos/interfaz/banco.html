@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IGNIS · Banco de ensayo</title>
+<!--
+  Interfaz del banco de ensayo IGNIS (GIP UdeC).
+  Se abre en Chrome o Edge (Web Serial) y habla con codigos/banco/banco.ino por USB, 115200 baudios.
+  Modo demostración sin hardware: abrir con ?demo al final de la dirección.
+-->
+<style>
+  :root {
+    --fondo: #f2f1ee;
+    --panel: #fbfaf8;
+    --tinta: #1b1b1a;
+    --suave: #6f6d68;
+    --linea: #d6d3cd;
+    --abierta: #2f7d4f;
+    --aviso: #b7791f;
+    --peligro: #b3261e;
+    --mono: ui-monospace, "Cascadia Mono", "Consolas", "Menlo", monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--fondo); color: var(--tinta);
+    font: 15px/1.35 system-ui, "Segoe UI", sans-serif;
+    display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100vh; min-height: 620px;
+  }
+  button, input { font: inherit; color: inherit; }
+  button {
+    border: 1px solid var(--tinta); background: var(--panel); border-radius: 3px;
+    padding: 6px 14px; cursor: pointer;
+  }
+  button:hover:not(:disabled) { background: #ebe9e4; }
+  button:disabled { opacity: .35; cursor: default; }
+  input[type=number] {
+    width: 5.5em; padding: 5px 6px; border: 1px solid var(--linea); border-radius: 3px;
+    background: #fff; font-family: var(--mono); text-align: right;
+  }
+  .etq { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--suave); }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  /* Barra superior */
+  header {
+    display: flex; align-items: center; gap: 18px; padding: 10px 20px;
+    border-bottom: 1px solid var(--linea); background: var(--panel);
+  }
+  header h1 { font-size: 15px; font-weight: 600; margin: 0; letter-spacing: .02em; }
+  header .esp { flex: 1; }
+  #conexion { display: flex; align-items: center; gap: 8px; color: var(--suave); }
+  .punto { width: 9px; height: 9px; border-radius: 50%; background: var(--linea); display: inline-block; }
+  .punto.ok { background: var(--abierta); }
+  .punto.mal { background: var(--peligro); }
+  #btnGrabar.grabando { background: var(--peligro); border-color: var(--peligro); color: #fff; }
+
+  /* Cuerpo */
+  main {
+    display: grid; gap: 14px; padding: 14px 20px;
+    grid-template-columns: 1.25fr 1fr; grid-template-rows: auto minmax(0, 1fr); min-height: 0;
+  }
+  section { background: var(--panel); border: 1px solid var(--linea); border-radius: 4px; padding: 14px 18px; }
+
+  /* Presión */
+  #panelPresion { display: flex; flex-direction: column; }
+  #presion { font-family: var(--mono); font-size: clamp(64px, 11vw, 148px); font-weight: 500; line-height: 1; letter-spacing: -.03em; margin: 8px 0 4px; }
+  #presion small { font-size: .28em; color: var(--suave); letter-spacing: 0; margin-left: .2em; }
+  #zona { font-size: 13px; font-weight: 600; letter-spacing: .08em; padding: 3px 8px; border-radius: 2px; align-self: flex-start; background: #e7e5e0; color: var(--suave); }
+  #barra { height: 8px; background: #e7e5e0; border-radius: 2px; margin-top: 14px; position: relative; overflow: hidden; }
+  #barraValor { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--tinta); }
+  .marca { position: absolute; top: -3px; bottom: -3px; width: 2px; }
+  #detalle { display: flex; gap: 26px; margin-top: 12px; color: var(--suave); }
+  #detalle b { color: var(--tinta); font-weight: 500; }
+  .aviso #presion { color: var(--aviso); }
+  .aviso #zona { background: var(--aviso); color: #fff; }
+  .peligro #presion { color: var(--peligro); }
+  .peligro #zona { background: var(--peligro); color: #fff; }
+
+  /* Válvula */
+  #panelValvula { display: flex; flex-direction: column; gap: 12px; }
+  #estadoValvula { display: flex; align-items: baseline; gap: 12px; }
+  #estadoTexto { font-size: 28px; font-weight: 600; letter-spacing: .04em; }
+  #estadoTiempo { color: var(--suave); }
+  #indicador { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--tinta); align-self: center; }
+  .abierta #indicador { background: var(--abierta); border-color: var(--abierta); }
+  .abierta #estadoTexto { color: var(--abierta); }
+  #btnValvula {
+    flex: 1; min-height: 120px; font-size: 32px; font-weight: 600; letter-spacing: .1em;
+    border-width: 2px; background: var(--tinta); color: #fff; border-color: var(--tinta);
+  }
+  #btnValvula:hover:not(:disabled) { background: #333230; }
+  .abierta #btnValvula { background: var(--peligro); border-color: var(--peligro); }
+  .abierta #btnValvula:hover:not(:disabled) { background: #9a2019; }
+  #pulso { display: flex; align-items: center; gap: 8px; }
+  #pulso button { flex: 1; }
+  #ayudaTecla { font-size: 12px; color: var(--suave); }
+
+  /* Gráfico */
+  #panelGrafico { grid-column: 1 / -1; display: flex; flex-direction: column; min-height: 200px; }
+  #panelGrafico .cab { display: flex; justify-content: space-between; align-items: baseline; }
+  #leyenda { display: flex; gap: 16px; font-size: 12px; color: var(--suave); }
+  #leyenda i { display: inline-block; width: 14px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 5px; }
+  #marcoGrafico { flex: 1; position: relative; min-height: 150px; margin-top: 8px; }
+  #grafico { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  /* Pie: ajustes y eventos */
+  footer {
+    display: grid; grid-template-columns: auto 1fr; gap: 20px; padding: 12px 20px 16px;
+    border-top: 1px solid var(--linea); background: var(--panel);
+  }
+  #ajustes { display: flex; gap: 16px; align-items: end; flex-wrap: wrap; }
+  #ajustes label { display: flex; flex-direction: column; gap: 3px; }
+  #eventos { font-family: var(--mono); font-size: 12px; color: var(--suave); max-height: 78px; overflow-y: auto; white-space: pre; border-left: 1px solid var(--linea); padding-left: 14px; }
+  #eventos .rojo { color: var(--peligro); }
+
+  #aviso {
+    display: none; position: fixed; inset: 0; background: rgba(242,241,238,.94);
+    align-items: center; justify-content: center; text-align: center; padding: 30px;
+  }
+  #aviso.ver { display: flex; }
+  #aviso div { max-width: 520px; }
+
+  @media (max-width: 900px) {
+    body { height: auto; }
+    main { grid-template-columns: 1fr; }
+    #panelGrafico { min-height: 280px; }
+    footer { grid-template-columns: 1fr; }
+    #eventos { border-left: 0; padding-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>IGNIS · Banco de ensayo</h1>
+  <span id="conexion"><span class="punto" id="puntoCx"></span><span id="textoCx">Desconectado</span></span>
+  <span class="esp"></span>
+  <span class="mono" id="tiempoGrab"></span>
+  <button id="btnGrabar" disabled>Grabar</button>
+  <button id="btnConectar">Conectar</button>
+</header>
+
+<main>
+  <section id="panelPresion">
+    <span class="etq">Presión del tanque</span>
+    <div id="presion">–.––<small>bar</small></div>
+    <span id="zona">SIN DATOS</span>
+    <div id="barra"><div id="barraValor"></div></div>
+    <div id="detalle">
+      <span>Máx. <b class="mono" id="maximo">–</b> bar <button id="btnMax" style="padding:0 6px;font-size:12px;margin-left:4px">↺</button></span>
+      <span>Señal <b class="mono" id="voltios">–</b> V</span>
+    </div>
+  </section>
+
+  <section id="panelValvula">
+    <span class="etq">Solenoide (NC)</span>
+    <div id="estadoValvula">
+      <span id="indicador"></span>
+      <span id="estadoTexto">CERRADA</span>
+      <span class="mono" id="estadoTiempo"></span>
+    </div>
+    <button id="btnValvula" disabled>ABRIR</button>
+    <div id="pulso">
+      <input type="number" id="inPulso" min="0.1" max="600" step="0.5" value="5">
+      <span>s</span>
+      <button id="btnPulso" disabled>Abrir por 5 s</button>
+    </div>
+    <span id="ayudaTecla">Esc o barra espaciadora: cerrar. Al perder la conexión la válvula se cierra sola.</span>
+  </section>
+
+  <section id="panelGrafico">
+    <div class="cab">
+      <span class="etq">Últimos 30 s</span>
+      <span id="leyenda"><span><i style="border-color:var(--tinta)"></i>presión</span><span><i style="border-color:var(--aviso);border-top-style:dashed"></i>alarma</span><span><i style="border-color:var(--peligro);border-top-style:dashed"></i>purga</span><span><i style="border-color:#cfe4d7;border-top-width:8px"></i>válvula abierta</span></span>
+    </div>
+    <div id="marcoGrafico"><canvas id="grafico"></canvas></div>
+  </section>
+</main>
+
+<footer>
+  <div id="ajustes">
+    <label><span class="etq">Alarma (bar)</span><input type="number" id="inAlarma" min="0.1" max="40" step="0.1" value="3"></label>
+    <label><span class="etq">Purga (bar)</span><input type="number" id="inPurga" min="0.1" max="8" step="0.1" value="4"></label>
+    <label><span class="etq">Máx. abierta (s)</span><input type="number" id="inMaxAb" min="5" max="600" step="5" value="60"></label>
+    <button id="btnAplicar" disabled>Aplicar</button>
+    <button id="btnCero" disabled title="Hacer con el tanque abierto a la atmósfera">Cero</button>
+  </div>
+  <div id="eventos"></div>
+</footer>
+
+<div id="aviso"><div>
+  <p><b>Este navegador no tiene Web Serial.</b></p>
+  <p>Abre este archivo en Google Chrome o Microsoft Edge en el PC. Para ver la interfaz sin el ESP32, agrega <span class="mono">?demo</span> al final de la dirección.</p>
+</div></div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const DEMO = new URLSearchParams(location.search).has("demo");
+const VENTANA_S = 30;
+
+// ---------------- Estado ----------------
+const st = {
+  conectado: false, p: null, v: null, valvula: 0, flags: 0, tEsp: 0,
+  tAbierta: null, alarma: 3, purga: 4, maxAb: 60, offset: 0, maximo: null,
+  ultimoDato: 0,
+};
+const hist = [];          // {t (ms PC), p, valvula}
+let grab = null;          // {inicio, filas:[], tEsp0}
+
+// ---------------- Transporte: Web Serial o simulador ----------------
+let puerto = null, escritor = null, lector = null, latido = null;
+
+async function conectar() {
+  if (st.conectado) return desconectar();
+  if (DEMO) { simulador.iniciar(); return conectado("Demostración"); }
+  try {
+    puerto = await navigator.serial.requestPort();
+    await puerto.open({ baudRate: 115200 });
+  } catch (e) { evento("No se pudo abrir el puerto: " + e.message, true); return; }
+  const enc = new TextEncoderStream();
+  enc.readable.pipeTo(puerto.writable);
+  escritor = enc.writable.getWriter();
+  conectado("USB");
+  leerBucle();
+}
+
+async function leerBucle() {
+  const dec = new TextDecoderStream();
+  puerto.readable.pipeTo(dec.writable).catch(() => {});
+  lector = dec.readable.getReader();
+  let resto = "";
+  try {
+    while (true) {
+      const { value, done } = await lector.read();
+      if (done) break;
+      resto += value;
+      let i;
+      while ((i = resto.indexOf("\n")) >= 0) { linea(resto.slice(0, i).trim()); resto = resto.slice(i + 1); }
+    }
+  } catch (e) { evento("Conexión interrumpida: " + e.message, true); }
+  desconectado();
+}
+
+function enviar(txt) {
+  if (!st.conectado) return;
+  if (DEMO) return simulador.comando(txt);
+  escritor.write(txt + "\n").catch(() => {});
+}
+
+function conectado(como) {
+  st.conectado = true;
+  latido = setInterval(() => enviar("HB"), 500);
+  enviar("HB"); enviar("STATUS");
+  $("puntoCx").className = "punto ok";
+  $("textoCx").textContent = "Conectado · " + como;
+  $("btnConectar").textContent = "Desconectar";
+  ["btnValvula", "btnPulso", "btnAplicar", "btnCero", "btnGrabar"].forEach(id => $(id).disabled = false);
+}
+
+async function desconectar() {
+  enviar("CLOSE");
+  if (DEMO) { simulador.detener(); return desconectado(); }
+  try { await lector?.cancel(); } catch (e) {}
+  try { escritor?.releaseLock(); } catch (e) {}
+  try { await puerto?.close(); } catch (e) {}
+}
+
+function desconectado() {
+  if (!st.conectado) return;
+  st.conectado = false;
+  clearInterval(latido);
+  if (grab) detenerGrabacion();
+  $("puntoCx").className = "punto mal";
+  $("textoCx").textContent = "Desconectado (el ESP32 cierra la válvula solo)";
+  $("btnConectar").textContent = "Conectar";
+  ["btnValvula", "btnPulso", "btnAplicar", "btnCero", "btnGrabar"].forEach(id => $(id).disabled = true);
+  st.p = null; pintarPresion();
+}
+
+// ---------------- Protocolo ----------------
+function linea(l) {
+  const c = l.split(",");
+  if (c[0] === "D" && c.length >= 6) {
+    const tEsp = +c[1], v = +c[2], p = +c[3], valv = +c[4], flags = +c[5];
+    if (valv && !st.valvula) st.tAbierta = performance.now();
+    if (!valv) st.tAbierta = null;
+    Object.assign(st, { tEsp, v, p, valvula: valv, flags, ultimoDato: performance.now() });
+    if (st.maximo === null || p > st.maximo) st.maximo = p;
+    hist.push({ t: performance.now(), p, valvula: valv });
+    while (hist.length && hist[0].t < performance.now() - VENTANA_S * 1000 - 1000) hist.shift();
+    if (grab) grab.filas.push([tEsp, v.toFixed(4), p.toFixed(3), valv, flags, ""]);
+  } else if (c[0] === "E") {
+    const txt = c.slice(2).join(",");
+    evento(txt, /ALARMA|PURGA|ERROR|PERDIDA|falla/i.test(txt));
+    if (grab) grab.filas.push([+c[1], "", "", "", "", txt.replace(/"/g, "'")]);
+  } else if (c[0] === "S" && c.length >= 5) {
+    st.alarma = +c[1]; st.purga = +c[2]; st.maxAb = +c[3]; st.offset = +c[4];
+    $("inAlarma").value = st.alarma; $("inPurga").value = st.purga; $("inMaxAb").value = st.maxAb;
+  }
+}
+
+function evento(txt, rojo) {
+  const div = $("eventos");
+  const s = document.createElement("div");
+  if (rojo) s.className = "rojo";
+  s.textContent = new Date().toLocaleTimeString("es-CL") + "  " + txt;
+  div.prepend(s);
+  while (div.children.length > 60) div.lastChild.remove();
+}
+
+// ---------------- Controles ----------------
+$("btnConectar").onclick = conectar;
+$("btnValvula").onclick = () => enviar(st.valvula ? "CLOSE" : "OPEN");
+$("inPulso").oninput = () => { $("btnPulso").textContent = "Abrir por " + (+$("inPulso").value || 0) + " s"; };
+$("btnPulso").onclick = () => {
+  const s = +$("inPulso").value;
+  if (!(s >= 0.1 && s <= 600)) return evento("Pulso fuera de rango (0,1 a 600 s)", true);
+  enviar("PULSE " + s);
+};
+$("btnAplicar").onclick = () => {
+  const a = +$("inAlarma").value, p = +$("inPurga").value, m = +$("inMaxAb").value;
+  if (p > 8) return evento("La purga no puede pasar de 8 bar (piezas impresas)", true);
+  if (a >= p) evento("Aviso: la alarma debería quedar bajo la presión de purga", true);
+  enviar("ALARM " + a); enviar("PURGE " + p); enviar("MAXOPEN " + m);
+};
+$("btnCero").onclick = () => {
+  if (confirm("¿El tanque está abierto a la atmósfera? Se tomará la lectura actual como 0 bar.")) enviar("ZERO");
+};
+$("btnMax").onclick = () => { st.maximo = st.p; };
+$("btnGrabar").onclick = () => grab ? detenerGrabacion() : iniciarGrabacion();
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT") return;
+  if (e.key === "Escape" || e.key === " ") { e.preventDefault(); enviar("CLOSE"); }
+});
+
+function iniciarGrabacion() {
+  grab = { inicio: new Date(), filas: [] };
+  $("btnGrabar").textContent = "Detener"; $("btnGrabar").classList.add("grabando");
+  evento("Grabación iniciada");
+}
+
+function detenerGrabacion() {
+  const g = grab; grab = null;
+  $("btnGrabar").textContent = "Grabar"; $("btnGrabar").classList.remove("grabando");
+  $("tiempoGrab").textContent = "";
+  if (!g.filas.length) return;
+  const t0 = g.filas[0][0];
+  const cab = `# IGNIS banco de ensayo; inicio ${g.inicio.toISOString()}; alarma ${st.alarma} bar; purga ${st.purga} bar; offset ${st.offset} bar\n` +
+              "t_s,volts,bar,valvula,flags,evento\n";
+  const csv = cab + g.filas.map(f => [((f[0] - t0) / 1000).toFixed(3), f[1], f[2], f[3], f[4], f[5] ? `"${f[5]}"` : ""].join(",")).join("\n");
+  const a = document.createElement("a");
+  const d = g.inicio, z = n => String(n).padStart(2, "0");
+  a.download = `ensayo_${d.getFullYear()}${z(d.getMonth() + 1)}${z(d.getDate())}_${z(d.getHours())}${z(d.getMinutes())}${z(d.getSeconds())}.csv`;
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.click();
+  evento(`Grabación guardada (${g.filas.length} filas): ${a.download}`);
+}
+
+// ---------------- Pintado ----------------
+function zona() {
+  if (st.p === null) return ["SIN DATOS", ""];
+  if (st.flags & 4) return ["FALLA DE SENSOR", "peligro"];
+  if (st.flags & 2) return ["PURGANDO", "peligro"];
+  if (st.p > st.alarma) return ["SOBRE ALARMA", "peligro"];
+  if (st.p > 0.8 * st.alarma) return ["CERCA DEL LÍMITE", "aviso"];
+  return ["NORMAL", ""];
+}
+
+function pintarPresion() {
+  const [txt, clase] = zona();
+  $("panelPresion").className = clase;
+  $("zona").textContent = txt;
+  $("presion").firstChild.nodeValue = st.p === null ? "–.––" : st.p.toFixed(2);
+  $("voltios").textContent = st.v === null ? "–" : st.v.toFixed(3);
+  $("maximo").textContent = st.maximo === null ? "–" : st.maximo.toFixed(2);
+  const esc = Math.max(st.purga * 1.15, 1);
+  $("barraValor").style.width = st.p === null ? "0" : Math.min(100, Math.max(0, st.p / esc * 100)) + "%";
+  $("barraValor").style.background = clase === "peligro" ? "var(--peligro)" : clase === "aviso" ? "var(--aviso)" : "var(--tinta)";
+  const barra = $("barra");
+  barra.querySelectorAll(".marca").forEach(m => m.remove());
+  [[st.alarma, "var(--aviso)"], [st.purga, "var(--peligro)"]].forEach(([b, col]) => {
+    const m = document.createElement("div");
+    m.className = "marca"; m.style.left = (b / esc * 100) + "%"; m.style.background = col;
+    barra.appendChild(m);
+  });
+}
+
+function pintarValvula() {
+  const ab = !!st.valvula;
+  $("panelValvula").className = ab ? "abierta" : "";
+  $("estadoTexto").textContent = ab ? (st.flags & 2 ? "ABIERTA · PURGA" : "ABIERTA") : "CERRADA";
+  $("btnValvula").textContent = ab ? "CERRAR" : "ABRIR";
+  $("estadoTiempo").textContent = ab && st.tAbierta ? ((performance.now() - st.tAbierta) / 1000).toFixed(1) + " s" : "";
+}
+
+const cv = $("grafico"), cx = cv.getContext("2d");
+function pintarGrafico() {
+  const dpr = window.devicePixelRatio || 1;
+  const W = cv.clientWidth, H = cv.clientHeight;
+  if (cv.width !== W * dpr || cv.height !== H * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
+  cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  cx.clearRect(0, 0, W, H);
+  const iz = 44, de = 10, ar = 6, ab = 22;
+  const ahora = performance.now();
+  const pMax = Math.max(st.purga * 1.1, ...hist.map(h => h.p), 0.5);
+  const pMin = Math.min(0, ...hist.map(h => h.p));
+  const X = t => iz + (W - iz - de) * (1 - (ahora - t) / (VENTANA_S * 1000));
+  const Y = p => ar + (H - ar - ab) * (1 - (p - pMin) / (pMax - pMin));
+
+  // Válvula abierta: franjas
+  cx.fillStyle = "#cfe4d7";
+  let ini = null;
+  hist.forEach((h, i) => {
+    if (h.valvula && ini === null) ini = h.t;
+    if ((!h.valvula || i === hist.length - 1) && ini !== null) {
+      const x0 = Math.max(iz, X(ini)), x1 = X(h.t);
+      cx.fillRect(x0, ar, x1 - x0, H - ar - ab); ini = null;
+    }
+  });
+
+  // Rejilla
+  const paso = [0.1, 0.2, 0.5, 1, 2, 5, 10].find(s => (pMax - pMin) / s <= 6) || 10;
+  cx.font = "11px " + getComputedStyle(document.body).getPropertyValue("--mono");
+  cx.fillStyle = "#6f6d68"; cx.strokeStyle = "#e3e0da"; cx.lineWidth = 1;
+  cx.textAlign = "right"; cx.textBaseline = "middle";
+  for (let p = Math.ceil(pMin / paso) * paso; p <= pMax + 1e-9; p += paso) {
+    const y = Math.round(Y(p)) + .5;
+    cx.beginPath(); cx.moveTo(iz, y); cx.lineTo(W - de, y); cx.stroke();
+    cx.fillText(p.toFixed(paso < 1 ? 1 : 0), iz - 6, y);
+  }
+  cx.textAlign = "center"; cx.textBaseline = "top";
+  for (let s = 0; s <= VENTANA_S; s += 5) {
+    cx.textAlign = s === 0 ? "right" : s === VENTANA_S ? "left" : "center";
+    cx.fillText(s === 0 ? "ahora" : "−" + s + " s", X(ahora - s * 1000), H - ab + 6);
+  }
+
+  // Límites
+  cx.setLineDash([6, 4]); cx.lineWidth = 1.5;
+  [[st.alarma, "#b7791f"], [st.purga, "#b3261e"]].forEach(([p, col]) => {
+    if (p > pMax) return;
+    cx.strokeStyle = col; cx.beginPath(); cx.moveTo(iz, Y(p)); cx.lineTo(W - de, Y(p)); cx.stroke();
+  });
+  cx.setLineDash([]);
+
+  // Presión
+  cx.strokeStyle = "#1b1b1a"; cx.lineWidth = 2; cx.lineJoin = "round";
+  cx.beginPath();
+  hist.forEach((h, i) => { const x = X(h.t), y = Y(h.p); i ? cx.lineTo(x, y) : cx.moveTo(x, y); });
+  cx.stroke();
+
+  // Borde
+  cx.strokeStyle = "#d6d3cd"; cx.lineWidth = 1;
+  cx.strokeRect(iz + .5, ar + .5, W - iz - de - 1, H - ar - ab - 1);
+}
+
+function cuadro() {
+  pintarPresion(); pintarValvula(); pintarGrafico();
+  if (st.conectado && !DEMO && st.ultimoDato && performance.now() - st.ultimoDato > 1500) {
+    $("textoCx").textContent = "Conectado · sin datos del ESP32";
+    $("puntoCx").className = "punto mal";
+  } else if (st.conectado) {
+    $("puntoCx").className = "punto ok";
+  }
+  if (grab) {
+    const s = Math.floor((Date.now() - grab.inicio) / 1000);
+    $("tiempoGrab").textContent = "● " + String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  }
+  requestAnimationFrame(cuadro);
+}
+
+// ---------------- Simulador (?demo) ----------------
+// Imita banco.ino: tanque que se presuriza con un compresor lento y se descarga al abrir.
+const simulador = {
+  t0: 0, p: 0, abierta: false, pulsoFin: 0, purgando: false, offset: 0, timer: null, tAb: 0,
+  iniciar() {
+    this.t0 = performance.now(); this.p = 0;
+    setTimeout(() => { linea("E,0,LISTO banco v1 (demo)"); linea(`S,${st.alarma},${st.purga},${st.maxAb},0.000`); }, 100);
+    this.timer = setInterval(() => this.paso(), 50);
+  },
+  detener() { clearInterval(this.timer); },
+  t() { return Math.round(performance.now() - this.t0); },
+  ev(txt) { linea(`E,${this.t()},${txt}`); },
+  abrir(m) { if (!this.abierta) { this.abierta = true; this.tAb = performance.now(); this.ev("ABIERTA " + m); } },
+  cerrar(m) { if (this.abierta) this.ev("CERRADA " + m); this.abierta = false; this.pulsoFin = 0; this.purgando = false; },
+  comando(c) {
+    const [op, a] = c.trim().toUpperCase().split(/\s+/);
+    if (op === "OPEN") { this.pulsoFin = 0; this.abrir("(manual)"); }
+    else if (op === "CLOSE") this.cerrar("(manual)");
+    else if (op === "PULSE") { this.cerrar("(nuevo pulso)"); this.abrir(`(pulso ${(+a).toFixed(1)} s)`); this.pulsoFin = performance.now() + +a * 1000; }
+    else if (op === "ZERO") { this.offset = this.p; this.ev("CERO fijado"); }
+    else if (op === "ALARM") { st.alarma = +a; this.ev("ALARMA " + a + " bar"); }
+    else if (op === "PURGE") { st.purga = +a; this.ev("PURGA " + a + " bar"); }
+    else if (op === "MAXOPEN") { st.maxAb = +a; this.ev("MAX ABIERTA " + a + " s"); }
+    if (["ALARM", "PURGE", "MAXOPEN", "ZERO", "STATUS"].includes(op)) linea(`S,${st.alarma},${st.purga},${st.maxAb},${this.offset.toFixed(3)}`);
+  },
+  paso() {
+    const dt = 0.05;
+    this.p += dt * 0.12;                                  // compresor lento
+    if (this.abierta) this.p -= dt * this.p * 0.9;        // descarga
+    this.p = Math.max(0, this.p);
+    const lect = this.p - this.offset + (Math.random() - .5) * 0.02;
+    if (this.pulsoFin && performance.now() > this.pulsoFin) this.cerrar("(fin de pulso)");
+    if (this.abierta && !this.pulsoFin && !this.purgando && performance.now() - this.tAb > st.maxAb * 1000) this.cerrar("(tiempo maximo)");
+    if (lect > st.purga && !this.purgando) { this.abrir("(PURGA por sobrepresion)"); this.purgando = true; this.pulsoFin = 0; }
+    else if (this.purgando && lect < st.purga - 0.3) this.cerrar("(fin de purga)");
+    const flags = (lect > st.alarma ? 1 : 0) | (this.purgando ? 2 : 0);
+    linea(`D,${this.t()},${(0.5 + (lect + this.offset) / 10).toFixed(4)},${lect.toFixed(3)},${this.abierta ? 1 : 0},${flags}`);
+  },
+};
+
+// ---------------- Arranque ----------------
+if (!DEMO && !("serial" in navigator)) $("aviso").classList.add("ver");
+if (DEMO) { document.title += " (demo)"; $("textoCx").textContent = "Demo: presiona Conectar"; }
+navigator.serial?.addEventListener?.("disconnect", () => desconectado());
+cuadro();
+</script>
+</body>
+</html>

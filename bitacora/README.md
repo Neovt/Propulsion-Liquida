@@ -17,6 +17,7 @@ Código y archivos de fabricación viven fuera de las bitácoras y se referencia
 | 2026-11-26 | [Elemento inyector v4 y fe de erratas](2026-11-26_elemento_inyector_v4.md) | Corrige el caudal del Allison (ensayo: ~14 g/s a 14 bar), entrada macho M12x1,5 24°, sellos de cobre sin ranuras, 15 g/s a 7,5 bar con herramienta mínima Ø2 y remolinadores de calibración | borrador |
 | 2026-11-26 | [Elemento inyector v5](2026-11-26_elemento_inyector_v5.md) | Brida de la punta Ø26 que tapa la arandela de cobre; sin agujeros de alambre de seguridad; cámara del bosquejo sin puertos laterales | borrador |
 | 2026-11-26 | [Primera prueba del transmisor de presión](2026-11-26_transmisor_presion_prueba.md) | Montaje y prueba del XDB401 con ADS1115 a presión atmosférica; el desfase de 0,15 V se debía a que el cable estaba soldado en A1 y el código leía A0; estimación de consumo en los 12 V; pendientes de la prueba con presión | borrador |
+| 2026-11-27 | [Interfaz del banco de ensayo](2026-11-27_interfaz_banco.md) | Programa único del ESP32 (presión a 20 Hz + válvula con seguridad local: cierre por pérdida de comunicación y purga por sobrepresión) e interfaz HTML en Chrome con gráfico y grabación a CSV | borrador |
 
 ## Cómo agregar una entrada
 
