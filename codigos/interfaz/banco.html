@@ -26,7 +26,7 @@
   body {
     background: var(--fondo); color: var(--tinta);
     font: 15px/1.35 system-ui, "Segoe UI", sans-serif;
-    display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100vh; min-height: 620px;
+    display: grid; grid-template-rows: auto 1fr auto; min-height: 100vh;
   }
   button, input { font: inherit; color: inherit; }
   button {
@@ -57,20 +57,20 @@
 
   /* Cuerpo */
   main {
-    display: grid; gap: 14px; padding: 14px 20px;
-    grid-template-columns: 1.25fr 1fr; grid-template-rows: auto minmax(0, 1fr); min-height: 0;
+    display: grid; gap: 12px; padding: 12px 20px;
+    grid-template-columns: 1.25fr 1fr; grid-template-rows: auto minmax(300px, 1fr);
   }
-  section { background: var(--panel); border: 1px solid var(--linea); border-radius: 4px; padding: 14px 18px; }
+  section { background: var(--panel); border: 1px solid var(--linea); border-radius: 4px; padding: 10px 16px; }
 
   /* Presión */
   #panelPresion { display: flex; flex-direction: column; }
-  #presion { font-family: var(--mono); font-size: clamp(64px, 11vw, 148px); font-weight: 500; line-height: 1; letter-spacing: -.03em; margin: 8px 0 4px; }
+  #presion { font-family: var(--mono); font-size: clamp(52px, 7.5vw, 116px); font-weight: 500; line-height: 1; letter-spacing: -.03em; margin: 4px 0 4px; }
   #presion small { font-size: .28em; color: var(--suave); letter-spacing: 0; margin-left: .2em; }
   #zona { font-size: 13px; font-weight: 600; letter-spacing: .08em; padding: 3px 8px; border-radius: 2px; align-self: flex-start; background: #e7e5e0; color: var(--suave); }
-  #barra { height: 8px; background: #e7e5e0; border-radius: 2px; margin-top: 14px; position: relative; overflow: hidden; }
+  #barra { height: 8px; background: #e7e5e0; border-radius: 2px; margin-top: 10px; position: relative; overflow: hidden; }
   #barraValor { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--tinta); }
   .marca { position: absolute; top: -3px; bottom: -3px; width: 2px; }
-  #detalle { display: flex; gap: 26px; margin-top: 12px; color: var(--suave); }
+  #detalle { display: flex; gap: 26px; margin-top: 8px; color: var(--suave); }
   #detalle b { color: var(--tinta); font-weight: 500; }
   #btnCarga { font-size: 12px; padding: 3px 9px; border-color: var(--linea); color: var(--suave); }
   #btnCarga.parada { border-color: var(--tinta); color: var(--tinta); }
@@ -82,15 +82,15 @@
   .peligro #zona { background: var(--peligro); color: #fff; }
 
   /* Válvula */
-  #panelValvula { display: flex; flex-direction: column; gap: 12px; }
+  #panelValvula { display: flex; flex-direction: column; gap: 9px; }
   #estadoValvula { display: flex; align-items: baseline; gap: 12px; }
-  #estadoTexto { font-size: 28px; font-weight: 600; letter-spacing: .04em; }
+  #estadoTexto { font-size: 24px; font-weight: 600; letter-spacing: .04em; }
   #estadoTiempo { color: var(--suave); }
   #indicador { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--tinta); align-self: center; }
   .abierta #indicador { background: var(--abierta); border-color: var(--abierta); }
   .abierta #estadoTexto { color: var(--abierta); }
   #btnValvula {
-    flex: 1; min-height: 120px; font-size: 32px; font-weight: 600; letter-spacing: .1em;
+    flex: 1; min-height: 84px; font-size: 28px; font-weight: 600; letter-spacing: .1em;
     border-width: 2px; background: var(--tinta); color: #fff; border-color: var(--tinta);
   }
   #btnValvula:hover:not(:disabled) { background: #333230; }
@@ -101,25 +101,27 @@
   #ayudaTecla { font-size: 12px; color: var(--suave); }
 
   /* Gráfico */
-  #panelGrafico { grid-column: 1 / -1; display: flex; flex-direction: column; min-height: 200px; }
+  #panelGrafico { grid-column: 1 / -1; display: flex; flex-direction: column; min-height: 300px; }
   #panelGrafico .cab { display: flex; justify-content: space-between; align-items: baseline; }
   #leyenda { display: flex; gap: 16px; font-size: 12px; color: var(--suave); }
   #leyenda i { display: inline-block; width: 14px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 5px; }
-  #marcoGrafico { flex: 1; position: relative; min-height: 150px; margin-top: 8px; }
+  #marcoGrafico { flex: 1; position: relative; min-height: 250px; margin-top: 6px; }
   #grafico { position: absolute; inset: 0; width: 100%; height: 100%; }
 
   /* Pie: ajustes y eventos */
   footer {
-    display: grid; grid-template-columns: auto 1fr; gap: 20px; padding: 12px 20px 16px;
+    display: grid; grid-template-columns: auto auto 1fr; gap: 18px; padding: 8px 20px 10px; align-items: end;
     border-top: 1px solid var(--linea); background: var(--panel);
   }
-  #ajustesCol { display: flex; flex-direction: column; gap: 12px; }
-  #ajustes, #fijar { display: flex; gap: 16px; align-items: end; flex-wrap: wrap; }
-  #fijar { padding-top: 12px; border-top: 1px solid var(--linea); }
-  #estadoFijar { align-self: center; color: var(--suave); font-size: 13px; }
+  #ajustesCol { display: contents; }
+  #ajustes, #fijar { display: flex; gap: 10px; align-items: end; }
+  #fijar { padding-left: 18px; border-left: 1px solid var(--linea); }
+  footer input[type=number] { width: 4.6em; padding: 3px 5px; }
+  footer button { padding: 4px 11px; }
+  #estadoFijar { align-self: center; color: var(--suave); font-size: 12px; max-width: 150px; line-height: 1.25; }
   #estadoFijar.activo { color: var(--abierta); font-weight: 600; }
   #ajustes label, #fijar label { display: flex; flex-direction: column; gap: 3px; }
-  #eventos { font-family: var(--mono); font-size: 12px; color: var(--suave); max-height: 78px; overflow-y: auto; white-space: pre; border-left: 1px solid var(--linea); padding-left: 14px; }
+  #eventos { font-family: var(--mono); font-size: 12px; color: var(--suave); height: 48px; overflow-y: auto; white-space: pre; border-left: 1px solid var(--linea); padding-left: 14px; align-self: stretch; }
   #eventos .rojo { color: var(--peligro); }
 
   #aviso {
@@ -130,10 +132,11 @@
   #aviso div { max-width: 520px; }
 
   @media (max-width: 900px) {
-    body { height: auto; }
     main { grid-template-columns: 1fr; }
     #panelGrafico { min-height: 280px; }
     footer { grid-template-columns: 1fr; }
+    #ajustes, #fijar { flex-wrap: wrap; }
+    #fijar { padding-left: 0; border-left: 0; }
     #eventos { border-left: 0; padding-left: 0; }
   }
 </style>
@@ -200,7 +203,7 @@
     <label><span class="etq">Fijar presión (bar)</span><input type="number" id="inFijar" min="0.1" max="8" step="0.1" value="2"></label>
     <button id="btnFijar" disabled title="Descarga con la válvula hasta llegar a esa presión y la mantiene. Solo puede bajar la presión.">Fijar</button>
     <button id="btnSoltar" disabled>Cancelar</button>
-    <span id="estadoFijar">Inactivo · solo baja la presión (descarga)</span>
+    <span id="estadoFijar">Inactivo · solo baja la presión</span>
   </div>
   </div>
   <div id="eventos"></div>
@@ -433,7 +436,7 @@ function pintarValvula() {
     ef.textContent = "Activo · manteniendo " + st.fijar.toFixed(2) + " bar" + (ab && !(st.flags & 2) ? " · descargando" : "");
   } else {
     ef.className = "";
-    ef.textContent = "Inactivo · solo baja la presión (descarga)";
+    ef.textContent = "Inactivo · solo baja la presión";
   }
 }
 
