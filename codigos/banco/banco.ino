@@ -1,4 +1,5 @@
 // Banco de ensayo IGNIS - ESP32: lectura de presión + control de la solenoide, con seguridad local.
+// v2 (2026-11-27): modo "fijar presión" por descarga (comando SET).
 // Reemplaza a presion.ino y solenoide.ino (se pueden seguir usando por separado para pruebas sueltas).
 //
 // Se usa con la interfaz codigos/interfaz/banco.html (Chrome, Web Serial), o a mano desde el
@@ -13,8 +14,9 @@
 // Salida (una línea por mensaje):
 //   D,t_ms,volts,bar,valvula(0/1),flags        datos, 20 por segundo
 //       flags: 0 normal | 1 sobre alarma | 2 purgando | 4 falla de sensor (bajo 0,4 V o sobre 4,6 V)
+//              | 8 fijando presión
 //   E,t_ms,texto                               eventos (apertura, cierre, motivo, alarmas)
-//   S,alarma_bar,purga_bar,max_abierta_s,offset_bar   configuración actual
+//   S,alarma_bar,purga_bar,max_abierta_s,offset_bar,fijar_bar   configuración actual (fijar 0 = inactivo)
 //
 // Comandos:
 //   OPEN            abre (100 % durante 300 ms y luego mantención al 70 %)
@@ -26,6 +28,10 @@
 //   PURGE b         presión de purga en bar: sobre ella la válvula se abre sola para descargar
 //                   (máximo 8 bar, por las piezas impresas); se cierra al bajar de purga - 0,3 bar
 //   MAXOPEN s       tiempo máximo abierta en apertura manual (5 a 600 s); luego se cierra sola
+//   SET b           fija la presión en b bar DESCARGANDO: si la presión está sobre b + 0,05 abre la
+//                   válvula y cierra al llegar a b + 0,02; espera 1 s a que se asiente y repite.
+//                   Solo puede bajar la presión (no hay válvula de carga). Se mantiene activo
+//                   hasta SET 0, CLOSE, OPEN o PULSE. Debe quedar bajo la presión de purga.
 //   HB              latido de la interfaz. Tras el primer HB, si pasan 2 s sin comandos la
 //                   válvula se cierra (pérdida de comunicación -> estado seguro)
 //   STATUS          reenvía la configuración
@@ -56,6 +62,9 @@ const int OPEN_MS = 300;                 // tiempo al 100 % para abrir
 const unsigned long WATCHDOG_MS = 2000;
 const float PURGA_MAX = 8.0f;            // tope de la presión de purga
 const float HIST_PURGA = 0.3f;
+const float SET_BANDA = 0.05f;           // tolerancia sobre la presión fijada antes de descargar
+const float SET_ANTICIPO = 0.02f;        // cierra un poco antes por el retardo de la válvula
+const unsigned long SET_ESPERA_MS = 1000;  // tiempo para que la presión se asiente
 
 // ---------- Estado ----------
 Adafruit_ADS1115 ads;
@@ -71,6 +80,11 @@ bool purgando = false;
 bool enPulso = false;
 unsigned long tApertura = 0, duracionPulso = 0;
 bool alarmaActiva = false;
+
+float fijarBar = 0.0f;                   // 0 = modo fijar inactivo
+bool fijando = false;                    // la válvula está abierta por el modo fijar
+bool fijadaAvisada = false;
+unsigned long tFinDescarga = 0;
 
 bool latidoActivo = false;
 unsigned long tUltimoComando = 0;
@@ -91,6 +105,7 @@ void cerrar(const char *motivo) {
   abierta = false;
   enPulso = false;
   purgando = false;
+  fijando = false;
 }
 
 void abrir(const char *motivo) {
@@ -115,7 +130,14 @@ float leerVoltios() {
 float aBar(float v) { return (v - V_MIN) / (V_MAX - V_MIN) * P_FS; }
 
 void enviarConfig() {
-  Serial.printf("S,%.2f,%.2f,%lu,%.3f\n", alarmaBar, purgaBar, maxAbiertaMs / 1000, offsetBar);
+  Serial.printf("S,%.2f,%.2f,%lu,%.3f,%.2f\n", alarmaBar, purgaBar, maxAbiertaMs / 1000, offsetBar, fijarBar);
+}
+
+void cancelarFijar(const char *motivo) {
+  if (fijarBar > 0) evento(String("FIJAR desactivado ") + motivo);
+  fijarBar = 0.0f;
+  if (fijando) cerrar("(fin de fijar)");
+  fijando = false;
 }
 
 // ---------- Comandos ----------
@@ -132,12 +154,15 @@ void procesar(String cmd) {
   if (op == "HB") {
     if (!latidoActivo) { latidoActivo = true; evento("INTERFAZ CONECTADA"); enviarConfig(); }
   } else if (op == "OPEN") {
+    cancelarFijar("(apertura manual)");
     enPulso = false;
     abrir("(manual)");
   } else if (op == "CLOSE") {
+    cancelarFijar("(cierre manual)");
     cerrar("(manual)");
   } else if (op == "PULSE") {
     if (isnan(arg) || arg < 0.1f || arg > 600.0f) { evento("PULSE fuera de rango (0,1 a 600 s)"); return; }
+    cancelarFijar("(pulso)");
     cerrar("(nuevo pulso)");
     duracionPulso = (unsigned long)(arg * 1000.0f);
     abrir((String("(pulso ") + String(arg, 1) + " s)").c_str());
@@ -166,6 +191,14 @@ void procesar(String cmd) {
     if (isnan(arg) || arg < 5 || arg > 600) { evento("MAXOPEN fuera de rango (5 a 600 s)"); return; }
     maxAbiertaMs = (unsigned long)(arg * 1000.0f); prefs.putULong("maxab", maxAbiertaMs);
     evento(String("MAX ABIERTA ") + String((int)arg) + " s");
+    enviarConfig();
+  } else if (op == "SET") {
+    if (isnan(arg) || arg < 0 || arg > P_FS) { evento("SET fuera de rango"); return; }
+    if (arg == 0) { cancelarFijar("(cancelado)"); if (abierta && !purgando) cerrar("(fin de fijar)"); enviarConfig(); return; }
+    if (arg >= purgaBar - SET_BANDA) { evento("SET debe quedar bajo la presion de purga"); return; }
+    enPulso = false;
+    fijarBar = arg; fijadaAvisada = false; tFinDescarga = 0;
+    evento(String("FIJAR ") + String(fijarBar, 2) + " bar (solo descarga)");
     enviarConfig();
   } else if (op == "STATUS") {
     enviarConfig();
@@ -197,7 +230,7 @@ void setup() {
   ads.setGain(GAIN_TWOTHIRDS);           // +-6,144 V
   ads.setDataRate(RATE_ADS1115_250SPS);
 
-  evento("LISTO banco v1");
+  evento("LISTO banco v2");
   enviarConfig();
 }
 
@@ -210,13 +243,17 @@ void loop() {
   // Pérdida de comunicación con la interfaz -> estado seguro
   if (latidoActivo && ahora - tUltimoComando > WATCHDOG_MS) {
     latidoActivo = false;
+    cancelarFijar("(sin comunicacion)");
     if (!purgando) cerrar("(sin comunicacion)");
     evento("INTERFAZ PERDIDA");
   }
 
   // Fin de pulso y tiempo máximo abierta
   if (abierta && enPulso && ahora - tApertura >= duracionPulso) cerrar("(fin de pulso)");
-  if (abierta && !enPulso && !purgando && ahora - tApertura >= maxAbiertaMs) cerrar("(tiempo maximo)");
+  if (abierta && !enPulso && !purgando && ahora - tApertura >= maxAbiertaMs) {
+    if (fijando) cancelarFijar("(tiempo maximo abierta: revisar la descarga)");
+    cerrar("(tiempo maximo)");
+  }
 
   // Dato
   if (ahora - tUltimoDato >= PERIODO_MS) {
@@ -240,7 +277,26 @@ void loop() {
       cerrar(fallaSensor ? "(fin de purga: falla de sensor)" : "(fin de purga)");
     }
 
-    int flags = (alarmaActiva ? 1 : 0) | (purgando ? 2 : 0) | (fallaSensor ? 4 : 0);
+    // Fijar presión por descarga
+    if (fijarBar > 0 && !purgando) {
+      if (fallaSensor) {
+        cancelarFijar("(falla de sensor)");
+      } else if (fijando) {
+        if (ultimaP <= fijarBar + SET_ANTICIPO) {
+          cerrar("(presion fijada)");
+          tFinDescarga = ahora;
+        }
+      } else if (!abierta && ultimaP > fijarBar + SET_BANDA && ahora - tFinDescarga >= SET_ESPERA_MS) {
+        abrir("(fijar presion)");
+        fijando = true;
+        fijadaAvisada = false;
+      } else if (!abierta && !fijadaAvisada && ultimaP <= fijarBar + SET_BANDA && ahora - tFinDescarga >= SET_ESPERA_MS) {
+        evento(String("PRESION EN ") + String(ultimaP, 2) + " bar (fijada " + String(fijarBar, 2) + ")");
+        fijadaAvisada = true;
+      }
+    }
+
+    int flags = (alarmaActiva ? 1 : 0) | (purgando ? 2 : 0) | (fallaSensor ? 4 : 0) | (fijarBar > 0 ? 8 : 0);
     Serial.printf("D,%lu,%.4f,%.3f,%d,%d\n", ahora, ultimaV, ultimaP, abierta ? 1 : 0, flags);
   }
 }

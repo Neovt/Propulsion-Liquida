@@ -22,8 +22,8 @@ codigos/
 | Carpeta | Qué hace | Hardware | Estado |
 |---|---|---|---|
 | [`solenoide/`](solenoide/solenoide.ino) | Abre y cierra la solenoide JT22-02 por el Monitor Serie (`open`, `close`, `status`, `hold NN`) | ESP32 DevKit + driver DRV8871 | probado sin presión |
-| [`banco/`](banco/banco.ino) | Programa único del banco: lee la presión a 20 Hz y maneja la válvula (abrir, cerrar, pulso de N s). Seguridad local: cierra al perder la comunicación, purga automática sobre un límite (máx. 8 bar), tiempo máximo abierta. Cero y límites guardados en la memoria del ESP32 | ESP32 + ADS1115 (A1) + XDB401 + DRV8871 + JT22-02 | revisado en sintaxis, **sin probar en el hardware** |
-| [`interfaz/banco.html`](interfaz/banco.html) | Interfaz de operación por USB (Web Serial, Chrome/Edge): presión grande con zonas de color, gráfico de 60 s, botón abrir/cerrar, pulso, límites, cero y grabación a CSV. `?demo` la muestra con un simulador | PC con Chrome | probada en modo demo |
+| [`banco/`](banco/banco.ino) | Programa único del banco: lee la presión a 20 Hz y maneja la válvula (abrir, cerrar, pulso de N s). Seguridad local: cierra al perder la comunicación, purga automática sobre un límite (máx. 8 bar), tiempo máximo abierta. v2: modo **fijar presión** por descarga (`SET b`). Cero y límites guardados en la memoria del ESP32 | ESP32 + ADS1115 (A1) + XDB401 + DRV8871 + JT22-02 | revisado en sintaxis, **sin probar en el hardware** |
+| [`interfaz/banco.html`](interfaz/banco.html) | Interfaz de operación por USB (Web Serial, Chrome/Edge): presión grande con zonas de color, gráfico de 60 s, botón abrir/cerrar, pulso, límites, cero y grabación a CSV, fijar presión. `?demo` la muestra con un simulador (con botón de carga solo para la demo) | PC con Chrome | probada en modo demo |
 | [`presion/`](presion/presion.ino) | Lee el transmisor XDB401 (0–40 bar, 0,5–4,5 V) con ADS1115 y entrega CSV `t_ms,volts,bar`; comandos `zero` / `reset` | ESP32 + ADS1115 + XDB401 | probado a presión atmosférica (ver bitácora del 2026-11-26) |
 
 ## Cómo usarlos

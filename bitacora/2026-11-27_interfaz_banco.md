@@ -39,3 +39,16 @@ Con el transmisor y la solenoide funcionando por separado ([prueba del 26-11](20
 3. Cero con el tanque abierto.
 4. El adaptador intermedio se reimprimirá en PETG, más macizo. Subir de a poco (0,5 / 1 / 2 / 3 bar), con regulador y válvula de alivio, y comparar con un manómetro.
 5. Probar la purga con un límite bajo (por ejemplo 1 bar) antes de confiar en ella.
+
+## 6. Actualización (misma noche): gráfico de 60 s, carga de la demo y "fijar presión"
+
+- **Gráfico:** pasa de 30 a 60 s, con marcas cada 10 s.
+- **Botón "Detener carga":** pequeño, en la barra superior. **Solo funciona en el modo demo** (detiene el compresor simulado); con el ESP32 real aparece deshabilitado, porque el banco aún no tiene válvula de carga. La carga real se corta a mano en el compresor o el regulador.
+- **Fijar presión** (`banco.ino` v2, comando `SET b`): se ingresa una presión y el sistema **descarga** con la solenoide hasta llegar a ella, y la mantiene si sube. Solo puede **bajar** la presión.
+  - Abre si la presión está más de 0,05 bar sobre la fijada; cierra al llegar a fijada + 0,02 (anticipo por el retardo de la válvula); espera 1 s a que se asiente antes de volver a abrir.
+  - Se cancela con "Cancelar", con abrir, cerrar o pulso manual, al perder la comunicación o con falla del sensor. La purga tiene prioridad. Si la válvula queda abierta más que el tiempo máximo (por ejemplo, una descarga tapada), se cierra y se cancela.
+  - La presión fijada debe quedar bajo la de purga.
+  - En la interfaz: campo, botones "Fijar" y "Cancelar", estado y una línea punteada verde en el gráfico.
+- **Probado en modo demo:** desde 1,08 bar sin carga, fijada en 0,60 bar, llegó a 0,61. Con la carga del simulador encendida (0,12 bar/s), se mantuvo entre 0,62 y 0,75 bar abriendo cada ~1 s.
+- **Por ajustar en el banco real:** la banda (0,05), el anticipo (0,02) y la espera (1 s) son valores iniciales. Dependen de cuánto tarda en descargar el tanque real. Con el compresor conectado, mantener la presión hace que la válvula conmute seguido; conviene cortar la carga antes de fijar.
+- Sintaxis del firmware revisada de nuevo con sustitutos de las bibliotecas; sigue **sin compilar para ESP32 ni probar en el hardware**.

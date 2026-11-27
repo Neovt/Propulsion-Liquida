@@ -113,8 +113,12 @@
     display: grid; grid-template-columns: auto 1fr; gap: 20px; padding: 12px 20px 16px;
     border-top: 1px solid var(--linea); background: var(--panel);
   }
-  #ajustes { display: flex; gap: 16px; align-items: end; flex-wrap: wrap; }
-  #ajustes label { display: flex; flex-direction: column; gap: 3px; }
+  #ajustesCol { display: flex; flex-direction: column; gap: 12px; }
+  #ajustes, #fijar { display: flex; gap: 16px; align-items: end; flex-wrap: wrap; }
+  #fijar { padding-top: 12px; border-top: 1px solid var(--linea); }
+  #estadoFijar { align-self: center; color: var(--suave); font-size: 13px; }
+  #estadoFijar.activo { color: var(--abierta); font-weight: 600; }
+  #ajustes label, #fijar label { display: flex; flex-direction: column; gap: 3px; }
   #eventos { font-family: var(--mono); font-size: 12px; color: var(--suave); max-height: 78px; overflow-y: auto; white-space: pre; border-left: 1px solid var(--linea); padding-left: 14px; }
   #eventos .rojo { color: var(--peligro); }
 
@@ -177,19 +181,27 @@
   <section id="panelGrafico">
     <div class="cab">
       <span class="etq">Últimos 60 s</span>
-      <span id="leyenda"><span><i style="border-color:var(--tinta)"></i>presión</span><span><i style="border-color:var(--aviso);border-top-style:dashed"></i>alarma</span><span><i style="border-color:var(--peligro);border-top-style:dashed"></i>purga</span><span><i style="border-color:#cfe4d7;border-top-width:8px"></i>válvula abierta</span></span>
+      <span id="leyenda"><span><i style="border-color:var(--tinta)"></i>presión</span><span><i style="border-color:var(--aviso);border-top-style:dashed"></i>alarma</span><span><i style="border-color:var(--peligro);border-top-style:dashed"></i>purga</span><span><i style="border-color:var(--abierta);border-top-style:dotted"></i>fijada</span><span><i style="border-color:#cfe4d7;border-top-width:8px"></i>válvula abierta</span></span>
     </div>
     <div id="marcoGrafico"><canvas id="grafico"></canvas></div>
   </section>
 </main>
 
 <footer>
+  <div id="ajustesCol">
   <div id="ajustes">
     <label><span class="etq">Alarma (bar)</span><input type="number" id="inAlarma" min="0.1" max="40" step="0.1" value="3"></label>
     <label><span class="etq">Purga (bar)</span><input type="number" id="inPurga" min="0.1" max="8" step="0.1" value="4"></label>
     <label><span class="etq">Máx. abierta (s)</span><input type="number" id="inMaxAb" min="5" max="600" step="5" value="60"></label>
     <button id="btnAplicar" disabled>Aplicar</button>
     <button id="btnCero" disabled title="Hacer con el tanque abierto a la atmósfera">Cero</button>
+  </div>
+  <div id="fijar">
+    <label><span class="etq">Fijar presión (bar)</span><input type="number" id="inFijar" min="0.1" max="8" step="0.1" value="2"></label>
+    <button id="btnFijar" disabled title="Descarga con la válvula hasta llegar a esa presión y la mantiene. Solo puede bajar la presión.">Fijar</button>
+    <button id="btnSoltar" disabled>Cancelar</button>
+    <span id="estadoFijar">Inactivo · solo baja la presión (descarga)</span>
+  </div>
   </div>
   <div id="eventos"></div>
 </footer>
@@ -208,7 +220,7 @@ const VENTANA_S = 60;
 // ---------------- Estado ----------------
 const st = {
   conectado: false, p: null, v: null, valvula: 0, flags: 0, tEsp: 0,
-  tAbierta: null, alarma: 3, purga: 4, maxAb: 60, offset: 0, maximo: null,
+  tAbierta: null, alarma: 3, purga: 4, maxAb: 60, offset: 0, maximo: null, fijar: 0,
   ultimoDato: 0,
 };
 const hist = [];          // {t (ms PC), p, valvula}
@@ -261,7 +273,7 @@ function conectado(como) {
   $("puntoCx").className = "punto ok";
   $("textoCx").textContent = "Conectado · " + como;
   $("btnConectar").textContent = "Desconectar";
-  ["btnValvula", "btnPulso", "btnAplicar", "btnCero", "btnGrabar"].forEach(id => $(id).disabled = false);
+  ["btnValvula", "btnPulso", "btnAplicar", "btnCero", "btnGrabar", "btnFijar", "btnSoltar"].forEach(id => $(id).disabled = false);
   $("btnCarga").disabled = !DEMO;
 }
 
@@ -281,7 +293,8 @@ function desconectado() {
   $("puntoCx").className = "punto mal";
   $("textoCx").textContent = "Desconectado (el ESP32 cierra la válvula solo)";
   $("btnConectar").textContent = "Conectar";
-  ["btnValvula", "btnPulso", "btnAplicar", "btnCero", "btnGrabar", "btnCarga"].forEach(id => $(id).disabled = true);
+  ["btnValvula", "btnPulso", "btnAplicar", "btnCero", "btnGrabar", "btnCarga", "btnFijar", "btnSoltar"].forEach(id => $(id).disabled = true);
+  st.fijar = 0;
   st.p = null; pintarPresion();
 }
 
@@ -299,10 +312,10 @@ function linea(l) {
     if (grab) grab.filas.push([tEsp, v.toFixed(4), p.toFixed(3), valv, flags, ""]);
   } else if (c[0] === "E") {
     const txt = c.slice(2).join(",");
-    evento(txt, /ALARMA|PURGA|ERROR|PERDIDA|falla/i.test(txt));
+    evento(txt, /ALARMA|PURGA|ERROR|PERDIDA|falla|revisar/i.test(txt));
     if (grab) grab.filas.push([+c[1], "", "", "", "", txt.replace(/"/g, "'")]);
   } else if (c[0] === "S" && c.length >= 5) {
-    st.alarma = +c[1]; st.purga = +c[2]; st.maxAb = +c[3]; st.offset = +c[4];
+    st.alarma = +c[1]; st.purga = +c[2]; st.maxAb = +c[3]; st.offset = +c[4]; st.fijar = c.length >= 6 ? +c[5] : 0;
     $("inAlarma").value = st.alarma; $("inPurga").value = st.purga; $("inMaxAb").value = st.maxAb;
   }
 }
@@ -341,6 +354,14 @@ $("btnCarga").onclick = () => {
   $("btnCarga").classList.toggle("parada", !simulador.cargando);
   simulador.ev(simulador.cargando ? "CARGA reanudada (demo)" : "CARGA detenida (demo)");
 };
+$("btnFijar").onclick = () => {
+  const b = +$("inFijar").value;
+  if (!(b > 0)) return evento("Presión a fijar no válida", true);
+  if (b >= st.purga - 0.05) return evento("La presión a fijar debe quedar bajo la purga (" + st.purga + " bar)", true);
+  if (st.p !== null && b > st.p + 0.05) evento("La presión actual (" + st.p.toFixed(2) + " bar) está bajo " + b + ": el sistema solo descarga, esperará a que suba");
+  enviar("SET " + b);
+};
+$("btnSoltar").onclick = () => enviar("SET 0");
 $("btnMax").onclick = () => { st.maximo = st.p; };
 $("btnGrabar").onclick = () => grab ? detenerGrabacion() : iniciarGrabacion();
 document.addEventListener("keydown", e => {
@@ -406,6 +427,14 @@ function pintarValvula() {
   $("estadoTexto").textContent = ab ? (st.flags & 2 ? "ABIERTA · PURGA" : "ABIERTA") : "CERRADA";
   $("btnValvula").textContent = ab ? "CERRAR" : "ABRIR";
   $("estadoTiempo").textContent = ab && st.tAbierta ? ((performance.now() - st.tAbierta) / 1000).toFixed(1) + " s" : "";
+  const ef = $("estadoFijar");
+  if (st.fijar > 0) {
+    ef.className = "activo";
+    ef.textContent = "Activo · manteniendo " + st.fijar.toFixed(2) + " bar" + (ab && !(st.flags & 2) ? " · descargando" : "");
+  } else {
+    ef.className = "";
+    ef.textContent = "Inactivo · solo baja la presión (descarga)";
+  }
 }
 
 const cv = $("grafico"), cx = cv.getContext("2d");
@@ -455,6 +484,10 @@ function pintarGrafico() {
     if (p > pMax) return;
     cx.strokeStyle = col; cx.beginPath(); cx.moveTo(iz, Y(p)); cx.lineTo(W - de, Y(p)); cx.stroke();
   });
+  if (st.fijar > 0) {
+    cx.setLineDash([2, 3]); cx.strokeStyle = "#2f7d4f"; cx.lineWidth = 2;
+    cx.beginPath(); cx.moveTo(iz, Y(st.fijar)); cx.lineTo(W - de, Y(st.fijar)); cx.stroke();
+  }
   cx.setLineDash([]);
 
   // Presión
@@ -486,27 +519,33 @@ function cuadro() {
 // ---------------- Simulador (?demo) ----------------
 // Imita banco.ino: tanque que se presuriza con un compresor lento y se descarga al abrir.
 const simulador = {
-  t0: 0, p: 0, cargando: true, abierta: false, pulsoFin: 0, purgando: false, offset: 0, timer: null, tAb: 0,
+  t0: 0, p: 0, cargando: true, fijar: 0, fijando: false, tFin: 0, avisada: false, abierta: false, pulsoFin: 0, purgando: false, offset: 0, timer: null, tAb: 0,
   iniciar() {
     this.t0 = performance.now(); this.p = 0;
-    setTimeout(() => { linea("E,0,LISTO banco v1 (demo)"); linea(`S,${st.alarma},${st.purga},${st.maxAb},0.000`); }, 100);
+    setTimeout(() => { linea("E,0,LISTO banco v2 (demo)"); this.config(); }, 100);
     this.timer = setInterval(() => this.paso(), 50);
   },
   detener() { clearInterval(this.timer); },
   t() { return Math.round(performance.now() - this.t0); },
   ev(txt) { linea(`E,${this.t()},${txt}`); },
   abrir(m) { if (!this.abierta) { this.abierta = true; this.tAb = performance.now(); this.ev("ABIERTA " + m); } },
-  cerrar(m) { if (this.abierta) this.ev("CERRADA " + m); this.abierta = false; this.pulsoFin = 0; this.purgando = false; },
+  cerrar(m) { if (this.abierta) this.ev("CERRADA " + m); this.abierta = false; this.pulsoFin = 0; this.purgando = false; this.fijando = false; },
+  cancelar(m) { if (this.fijar > 0) this.ev("FIJAR desactivado " + m); this.fijar = 0; if (this.fijando) this.cerrar("(fin de fijar)"); },
+  config() { linea(`S,${st.alarma},${st.purga},${st.maxAb},${this.offset.toFixed(3)},${this.fijar.toFixed(2)}`); },
   comando(c) {
     const [op, a] = c.trim().toUpperCase().split(/\s+/);
-    if (op === "OPEN") { this.pulsoFin = 0; this.abrir("(manual)"); }
-    else if (op === "CLOSE") this.cerrar("(manual)");
-    else if (op === "PULSE") { this.cerrar("(nuevo pulso)"); this.abrir(`(pulso ${(+a).toFixed(1)} s)`); this.pulsoFin = performance.now() + +a * 1000; }
+    if (op === "OPEN") { this.cancelar("(apertura manual)"); this.pulsoFin = 0; this.abrir("(manual)"); }
+    else if (op === "CLOSE") { this.cancelar("(cierre manual)"); this.cerrar("(manual)"); }
+    else if (op === "SET") {
+      if (+a === 0) this.cancelar("(cancelado)");
+      else { this.fijar = +a; this.avisada = false; this.tFin = 0; this.ev(`FIJAR ${(+a).toFixed(2)} bar (solo descarga)`); }
+    }
+    else if (op === "PULSE") { this.cancelar("(pulso)"); this.cerrar("(nuevo pulso)"); this.abrir(`(pulso ${(+a).toFixed(1)} s)`); this.pulsoFin = performance.now() + +a * 1000; }
     else if (op === "ZERO") { this.offset = this.p; this.ev("CERO fijado"); }
     else if (op === "ALARM") { st.alarma = +a; this.ev("ALARMA " + a + " bar"); }
     else if (op === "PURGE") { st.purga = +a; this.ev("PURGA " + a + " bar"); }
     else if (op === "MAXOPEN") { st.maxAb = +a; this.ev("MAX ABIERTA " + a + " s"); }
-    if (["ALARM", "PURGE", "MAXOPEN", "ZERO", "STATUS"].includes(op)) linea(`S,${st.alarma},${st.purga},${st.maxAb},${this.offset.toFixed(3)}`);
+    if (["ALARM", "PURGE", "MAXOPEN", "ZERO", "STATUS", "SET"].includes(op)) this.config();
   },
   paso() {
     const dt = 0.05;
@@ -518,7 +557,13 @@ const simulador = {
     if (this.abierta && !this.pulsoFin && !this.purgando && performance.now() - this.tAb > st.maxAb * 1000) this.cerrar("(tiempo maximo)");
     if (lect > st.purga && !this.purgando) { this.abrir("(PURGA por sobrepresion)"); this.purgando = true; this.pulsoFin = 0; }
     else if (this.purgando && lect < st.purga - 0.3) this.cerrar("(fin de purga)");
-    const flags = (lect > st.alarma ? 1 : 0) | (this.purgando ? 2 : 0);
+    const ahora = performance.now();
+    if (this.fijar > 0 && !this.purgando) {
+      if (this.fijando) { if (lect <= this.fijar + 0.02) { this.cerrar("(presion fijada)"); this.tFin = ahora; } }
+      else if (!this.abierta && lect > this.fijar + 0.05 && ahora - this.tFin >= 1000) { this.abrir("(fijar presion)"); this.fijando = true; this.avisada = false; }
+      else if (!this.abierta && !this.avisada && lect <= this.fijar + 0.05 && ahora - this.tFin >= 1000) { this.ev(`PRESION EN ${lect.toFixed(2)} bar (fijada ${this.fijar.toFixed(2)})`); this.avisada = true; }
+    }
+    const flags = (lect > st.alarma ? 1 : 0) | (this.purgando ? 2 : 0) | (this.fijar > 0 ? 8 : 0);
     linea(`D,${this.t()},${(0.5 + (lect + this.offset) / 10).toFixed(4)},${lect.toFixed(3)},${this.abierta ? 1 : 0},${flags}`);
   },
 };
