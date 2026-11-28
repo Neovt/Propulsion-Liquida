@@ -115,3 +115,24 @@ Por lo tanto:
 - reimprimir el inyector revisando la configuración: la orientación, los soportes internos y la calibración de flujo de la impresora.
 
 Con eso, la diferencia entre las dos curvas da el paso efectivo del inyector.
+
+## 5. Otras observaciones del video (segunda revisión)
+
+Las observaciones salen de cuadros del video cada 2,5 s. Son lo que se ve, no mediciones.
+
+- **Consumo real de la solenoide abierta:** la fuente marca **0,78–0,80 A a 11,6 V** con la válvula abierta en mantención al 70 % (0:37 y 1:27–1:45). Eso son ~9 W sostenidos. **Corrige** el "~0,2 A" anotado de memoria en la [entrada del 26-11](2026-11-26_transmisor_presion_prueba.md) (sección 6). Con la válvula cerrada marca 0,00 A.
+- **No se ve un regulador ni una válvula de alivio** entre el compresor y el tanque. La entrada se dosifica con la llave manual. Un compresor de taller puede llegar a ~8 bar. La única protección contra sobrepresión es la purga del ESP32, que depende del transmisor y de que la salida esté libre (y en esta prueba la salida tenía el inyector parcialmente tapado).
+- **El operador carga a mano, junto al tanque presurizado**, con la mano en la llave y cerca del niple P2 impreso.
+- **Fijación del tanque:** el extintor está de pie en el suelo, sujeto con cinta de papel a una caja de cartón. En la descarga libre el tanque **tembló por el empuje**.
+- **La solenoide queda en voladizo** sobre el niple P2 impreso, con el peso de la bobina, el conector y el cable. Si el tanque vibra, eso carga a flexión una pieza de plástico.
+- **Electrónica:** la caja de cartón con el ESP32, el ADS y el driver va amarrada al tanque. El cable rojo de +12 V cuelga suelto desde la fuente. El compresor está en el suelo a ~1 m de la electrónica.
+- **Gráfico:** con la purga en 4 bar, las presiones de la prueba (0,3–1,6 bar) ocupan solo el tercio inferior del gráfico.
+
+### Recomendaciones antes de subir de presión
+1. **Válvula de alivio mecánica** en el tanque o en la cruz, tarada bajo el límite de las piezas impresas (por ejemplo 4–5 bar), y **regulador** a la salida del compresor, ajustado a la presión del ensayo (≤ 3 bar por ahora). Son la protección real; la purga del ESP32 es una segunda capa.
+2. **Operar a distancia**, desde el notebook. Si se carga a mano, que sea a baja presión y sin la cara sobre el niple impreso. Para presiones mayores, una pantalla de policarbonato o el container que menciona el documento de la Fase 1.
+3. **Fijar el tanque** a una base o a la mesa con una correa o abrazadera, sobre todo para las descargas libres.
+4. **Sostener la solenoide** con un soporte propio, para que el niple P2 no cargue su peso.
+5. **Ordenar el cableado:** una caja firme, cables soldados o con conectores, alivio de tensión en el cable de la fuente y el USB lejos de los cables del compresor.
+6. **Ensayo de calentamiento de la bobina:** a ~9 W, conviene medir su temperatura tras 60 s abierta antes de usar aperturas largas. Hoy el máximo es 60 s.
+7. **Hipótesis para las desconexiones:** si ocurren ~15 s después de encender el compresor, puede coincidir con el corte de su presostato o la descarga de su válvula de alivio interna (motor que se detiene y pico eléctrico). Vale la pena anotar si coincide con ese "pssst" del compresor.
