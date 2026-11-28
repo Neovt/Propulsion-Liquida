@@ -648,7 +648,7 @@ const simulador = {
     if (this.cargando) this.p += dt * 0.12;               // compresor lento (valor provisorio, a ajustar con datos reales)
     if (this.abierta) this.p -= dt * this.p * 0.9;        // descarga rápida (valor provisorio, a ajustar con datos reales)
     this.p = Math.max(0, this.p);
-    const lect = this.p - this.offset + (Math.random() - .5) * 0.01;    // ruido de ±0,005 bar, del orden del banco real en reposo
+    const lect = this.p - this.offset + (Math.random() - .5) * 0.06;    // ruido de ±0,03 bar, del orden del banco real (puede ser mayor)
     if (this.pulsoFin && performance.now() > this.pulsoFin) this.cerrar("(fin de pulso)");
     if (this.abierta && !this.pulsoFin && !this.purgando && performance.now() - this.tAb > st.maxAb * 1000) this.cerrar("(tiempo maximo)");
     this.pfil = this.pfil === null ? lect : this.pfil + (0.05 / 0.55) * (lect - this.pfil);
