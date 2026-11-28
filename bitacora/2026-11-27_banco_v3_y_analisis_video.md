@@ -140,3 +140,8 @@ Las observaciones salen de cuadros del video cada 2,5 s. Son lo que se ve, no me
 ## 6. Corrección del simulador
 
 El simulador del modo demo se había ajustado a la descarga lenta del video, que se debía al inyector tapado. Pedido por Matías, vuelve a los valores anteriores (carga 0,12 bar/s, descarga rápida). Son provisorios: se ajustarán cuando haya datos crudos grabados. Se mantienen la lógica v3 y el ruido de ±0,03 bar.
+
+## 7. Temperatura de la bobina y escala del gráfico
+
+- **Bobina (observación de Matías):** en los ~15 min de prueba abrió y cerró muchas veces. Las aperturas más largas fueron de ~30–40 s, nunca de 60 s. Al guardar el sistema, la bobina estaba **tibia, no caliente**. Es cualitativo, sin medición. Queda como pendiente medir su temperatura después de una apertura de 60 s.
+- **Gráfico con escala comprimida** (pedido por Matías): el eje vertical usa la raíz cuadrada de la presión, así que el tramo de 0–1 bar ocupa más espacio que el de 1–2, y así sucesivamente. Las marcas quedan en 0; 0,25; 0,5; 1; 1,5; 2; 3; 4… El botón "Escala: comprimida / lineal", junto al título del gráfico, cambia entre las dos y se recuerda. Ojo: en la escala comprimida, una subida lineal se ve como una curva; para leer pendientes conviene la lineal.
