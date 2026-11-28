@@ -147,3 +147,16 @@ El simulador del modo demo se había ajustado a la descarga lenta del video, que
 - **Gráfico con escala comprimida** (pedido por Matías): el eje vertical usa la raíz cuadrada de la presión, así que el tramo de 0–1 bar ocupa más espacio que el de 1–2, y así sucesivamente. Las marcas quedan en 0; 0,25; 0,5; 1; 1,5; 2; 3; 4… El botón "Escala: comprimida / lineal", junto al título del gráfico, cambia entre las dos y se recuerda. Ojo: en la escala comprimida, una subida lineal se ve como una curva; para leer pendientes conviene la lineal.
 
 **Corrección de la escala (misma noche):** la raíz cuadrada agrandaba mucho el ruido cerca de 0. Su pendiente es infinita en 0, así que una oscilación de milésimas se veía enorme. Se cambió por una escala logarítmica suave, ln(1 + p/0,5): de 0 a 1 bar sigue ocupando ~la mitad del alto hasta 4 bar, pero cerca de 0 solo amplía unas 2 veces respecto de la escala lineal. Las marcas quedan en 0; 0,5; 1; 1,5; 2; 3; 4. El ruido del simulador se mantiene en ±0,03 bar. Matías aclaró que en el banco real la lectura en reposo oscila del orden de 0,00 a 0,03 bar, y probablemente algo más (al describirlo primero había agregado un cero de más).
+
+## 8. Alimentación común y pico al cerrar la solenoide (consulta del 28-11, madrugada)
+
+**Montaje actual:** una sola fuente de 12 V. El cable llega a la entrada VM del driver y desde ahí sale un puente al cable rojo del transmisor.
+
+- **El pico:** al cerrar la válvula (IN1 = IN2 = 0, el driver queda en "coast"), la energía de la bobina vuelve por los diodos internos del driver hacia VM, que es justo el punto de donde se alimenta el transmisor. La fuente de laboratorio no absorbe corriente de vuelta, así que el voltaje sube un instante. No está medido porque la inductancia de la bobina no se conoce. En decenas de ciclos el transmisor siguió funcionando.
+- **Decidido (hardware, sin rehacer las soldaduras existentes):**
+  - un electrolítico de **470 µF / 35 V** (o 100 µF como mínimo) entre VM y GND del driver;
+  - un electrolítico de **100 µF / ≥ 25 V** entre el rojo y el negro del transmisor, cerca del sensor.
+
+  Hay que respetar la polaridad. Opcionalmente, un TVS de ~18 V (SMBJ18A o P6KE18A) en VM. Además, revisar en la etiqueta del transmisor su rango de alimentación: muchos aceptan 9–36 V.
+- **Solo como sugerencia, no implementado:** cerrar con freno (IN1 = IN2 = 1 durante ~50 ms y luego 0). Eliminaría el pico en su origen, pero la corriente de la bobina se demora más en bajar. **Matías prioriza un cierre lo más rápido y seco posible**, así que se mantiene el cierre actual, que es el más rápido. Si se evalúa en el futuro, medir antes el tiempo de cierre con y sin freno, por ejemplo con la caída de presión grabada en el CSV.
+- **A futuro:** fuente o regulador aparte para el transmisor, con tierra común, como plantea la Fase 1.
