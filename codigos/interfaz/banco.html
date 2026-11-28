@@ -72,6 +72,8 @@
   .marca { position: absolute; top: -3px; bottom: -3px; width: 2px; }
   #detalle { display: flex; gap: 26px; margin-top: 8px; color: var(--suave); }
   #detalle b { color: var(--tinta); font-weight: 500; }
+  #btnSesion { font-size: 13px; padding: 5px 11px; border-color: var(--linea); }
+  .punto.aviso { background: var(--aviso); }
   #btnCarga { font-size: 12px; padding: 3px 9px; border-color: var(--linea); color: var(--suave); }
   #btnCarga.parada { border-color: var(--tinta); color: var(--tinta); }
   .normal #presion { color: var(--abierta); }
@@ -149,6 +151,7 @@
   <span class="esp"></span>
   <button id="btnCarga" disabled title="Solo en modo demo: el banco real aún no tiene válvula de carga">Detener carga</button>
   <span class="mono" id="tiempoGrab"></span>
+  <button id="btnSesion" disabled title="Descarga todo lo registrado desde que se abrió la página, aunque no se haya presionado Grabar">Descargar sesión</button>
   <button id="btnGrabar" disabled>Grabar</button>
   <button id="btnConectar">Conectar</button>
 </header>
@@ -222,7 +225,7 @@ const VENTANA_S = 60;
 
 // ---------------- Estado ----------------
 const st = {
-  conectado: false, p: null, v: null, valvula: 0, flags: 0, tEsp: 0,
+  conectado: false, p: null, pf: null, v: null, valvula: 0, flags: 0, tEsp: 0,
   tAbierta: null, alarma: 3, purga: 4, maxAb: 60, offset: 0, maximo: null, fijar: 0,
   ultimoDato: 0,
 };
@@ -231,19 +234,60 @@ let grab = null;          // {inicio, filas:[], tEsp0}
 
 // ---------------- Transporte: Web Serial o simulador ----------------
 let puerto = null, escritor = null, lector = null, latido = null;
+let cierreManual = false, reintento = null, infoPuerto = null;
 
 async function conectar() {
-  if (st.conectado) return desconectar();
+  if (st.conectado || reintento) return desconectar();
   if (DEMO) { simulador.iniciar(); return conectado("Demostración"); }
   try {
-    puerto = await navigator.serial.requestPort();
-    await puerto.open({ baudRate: 115200 });
-  } catch (e) { evento("No se pudo abrir el puerto: " + e.message, true); return; }
+    const p = await navigator.serial.requestPort();
+    await abrir(p, "USB");
+  } catch (e) { evento("No se pudo abrir el puerto: " + e.message, true); }
+}
+
+// Abre un puerto ya elegido y arranca la lectura
+async function abrir(p, como) {
+  await p.open({ baudRate: 115200 });
+  puerto = p;
+  infoPuerto = p.getInfo ? p.getInfo() : null;
+  cierreManual = false;
   const enc = new TextEncoderStream();
-  enc.readable.pipeTo(puerto.writable);
+  enc.readable.pipeTo(puerto.writable).catch(() => {});
   escritor = enc.writable.getWriter();
-  conectado("USB");
+  conectado(como);
   leerBucle();
+}
+
+// Busca entre los puertos ya autorizados el mismo de antes (o el único que haya)
+async function puertoConocido() {
+  if (!("serial" in navigator)) return null;
+  const ps = await navigator.serial.getPorts();
+  if (!ps.length) return null;
+  if (infoPuerto) {
+    const igual = ps.find(q => { const i = q.getInfo(); return i.usbVendorId === infoPuerto.usbVendorId && i.usbProductId === infoPuerto.usbProductId; });
+    if (igual) return igual;
+  }
+  return ps.length === 1 ? ps[0] : null;
+}
+
+async function intentarReconectar() {
+  if (st.conectado || cierreManual) return;
+  try {
+    const p = await puertoConocido();
+    if (!p) return;
+    await abrir(p, "USB · reconectado");
+    clearInterval(reintento); reintento = null;
+    evento("RECONECTADO automáticamente");
+    registrar(null, "RECONECTADO (interfaz)");
+  } catch (e) { /* el puerto aún no vuelve: se reintenta */ }
+}
+
+function empezarReintentos() {
+  if (DEMO || cierreManual || reintento) return;
+  $("puntoCx").className = "punto aviso";
+  $("textoCx").textContent = "Reconectando… (el ESP32 cierra la válvula solo)";
+  $("btnConectar").textContent = "Cancelar";
+  reintento = setInterval(intentarReconectar, 1500);
 }
 
 async function leerBucle() {
@@ -260,7 +304,9 @@ async function leerBucle() {
       while ((i = resto.indexOf("\n")) >= 0) { linea(resto.slice(0, i).trim()); resto = resto.slice(i + 1); }
     }
   } catch (e) { evento("Conexión interrumpida: " + e.message, true); }
+  try { await puerto?.close(); } catch (e) {}
   desconectado();
+  empezarReintentos();
 }
 
 function enviar(txt) {
@@ -271,6 +317,7 @@ function enviar(txt) {
 
 function conectado(como) {
   st.conectado = true;
+  clearInterval(latido);
   latido = setInterval(() => enviar("HB"), 500);
   enviar("HB"); enviar("STATUS");
   $("puntoCx").className = "punto ok";
@@ -281,42 +328,78 @@ function conectado(como) {
 }
 
 async function desconectar() {
+  cierreManual = true;
+  clearInterval(reintento); reintento = null;
   enviar("CLOSE");
-  if (DEMO) { simulador.detener(); return desconectado(); }
+  if (DEMO) { simulador.detener(); desconectado(); return; }
   try { await lector?.cancel(); } catch (e) {}
   try { escritor?.releaseLock(); } catch (e) {}
   try { await puerto?.close(); } catch (e) {}
+  desconectado();
 }
 
 function desconectado() {
-  if (!st.conectado) return;
-  st.conectado = false;
   clearInterval(latido);
-  if (grab) detenerGrabacion();
+  if (st.conectado) registrar(null, cierreManual ? "DESCONECTADO (manual)" : "DESCONEXION (interfaz)");
+  st.conectado = false;
   $("puntoCx").className = "punto mal";
   $("textoCx").textContent = "Desconectado (el ESP32 cierra la válvula solo)";
   $("btnConectar").textContent = "Conectar";
-  ["btnValvula", "btnPulso", "btnAplicar", "btnCero", "btnGrabar", "btnCarga", "btnFijar", "btnSoltar"].forEach(id => $(id).disabled = true);
+  ["btnValvula", "btnPulso", "btnAplicar", "btnCero", "btnCarga", "btnFijar", "btnSoltar"].forEach(id => $(id).disabled = true);
   st.fijar = 0;
-  st.p = null; pintarPresion();
+  st.p = null; st.pf = null; pintarPresion();
+}
+
+// ---------------- Registro: sesión completa (siempre) y tramos (Grabar) ----------------
+const sesion = { inicio: null, filas: [] };     // desde la primera conexión hasta cerrar la página
+const MAX_FILAS = 20 * 3600 * 6;                // ~6 h a 20 datos/s
+
+function registrar(d, ev) {
+  const ahora = new Date();
+  if (!sesion.inicio) sesion.inicio = ahora;
+  const fila = [ahora.getTime(), d ? d.tEsp : "", d ? d.v.toFixed(4) : "", d ? d.p.toFixed(3) : "",
+                d && d.pf !== null ? d.pf.toFixed(3) : "", d ? d.valv : "", d ? d.flags : "", ev ? ev.replace(/"/g, "'") : ""];
+  sesion.filas.push(fila);
+  if (sesion.filas.length > MAX_FILAS) sesion.filas.shift();
+  if (grab) grab.filas.push(fila);
+  $("btnSesion").disabled = false;
+}
+
+function descargarCsv(filas, inicio, prefijo) {
+  if (!filas.length) return;
+  const t0 = filas[0][0];
+  const cab = `# IGNIS banco de ensayo; inicio ${inicio.toISOString()}; alarma ${st.alarma} bar; purga ${st.purga} bar; offset ${st.offset} bar\n` +
+              "t_s,hora,t_esp_ms,volts,bar,bar_filtrada,valvula,flags,evento\n";
+  const z = n => String(n).padStart(2, "0");
+  const csv = cab + filas.map(f => {
+    const d = new Date(f[0]);
+    const hora = `${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}.${String(d.getMilliseconds()).padStart(3, "0")}`;
+    return [((f[0] - t0) / 1000).toFixed(3), hora, f[1], f[2], f[3], f[4], f[5], f[6], f[7] ? `"${f[7]}"` : ""].join(",");
+  }).join("\n");
+  const a = document.createElement("a");
+  const d = inicio;
+  a.download = `${prefijo}_${d.getFullYear()}${z(d.getMonth() + 1)}${z(d.getDate())}_${z(d.getHours())}${z(d.getMinutes())}${z(d.getSeconds())}.csv`;
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.click();
+  evento(`Guardado ${a.download} (${filas.length} filas)`);
 }
 
 // ---------------- Protocolo ----------------
 function linea(l) {
   const c = l.split(",");
   if (c[0] === "D" && c.length >= 6) {
-    const tEsp = +c[1], v = +c[2], p = +c[3], valv = +c[4], flags = +c[5];
+    const tEsp = +c[1], v = +c[2], p = +c[3], valv = +c[4], flags = +c[5], pf = c.length >= 7 ? +c[6] : null;
     if (valv && !st.valvula) st.tAbierta = performance.now();
     if (!valv) st.tAbierta = null;
-    Object.assign(st, { tEsp, v, p, valvula: valv, flags, ultimoDato: performance.now() });
+    Object.assign(st, { tEsp, v, p, pf, valvula: valv, flags, ultimoDato: performance.now() });
     if (st.maximo === null || p > st.maximo) st.maximo = p;
     hist.push({ t: performance.now(), p, valvula: valv });
     while (hist.length && hist[0].t < performance.now() - VENTANA_S * 1000 - 1000) hist.shift();
-    if (grab) grab.filas.push([tEsp, v.toFixed(4), p.toFixed(3), valv, flags, ""]);
+    registrar({ tEsp, v, p, pf, valv, flags }, null);
   } else if (c[0] === "E") {
     const txt = c.slice(2).join(",");
     evento(txt, /ALARMA|PURGA|ERROR|PERDIDA|falla|revisar/i.test(txt));
-    if (grab) grab.filas.push([+c[1], "", "", "", "", txt.replace(/"/g, "'")]);
+    registrar(null, txt);
   } else if (c[0] === "S" && c.length >= 5) {
     st.alarma = +c[1]; st.purga = +c[2]; st.maxAb = +c[3]; st.offset = +c[4]; st.fijar = c.length >= 6 ? +c[5] : 0;
     $("inAlarma").value = st.alarma; $("inPurga").value = st.purga; $("inMaxAb").value = st.maxAb;
@@ -367,6 +450,8 @@ $("btnFijar").onclick = () => {
 $("btnSoltar").onclick = () => enviar("SET 0");
 $("btnMax").onclick = () => { st.maximo = st.p; };
 $("btnGrabar").onclick = () => grab ? detenerGrabacion() : iniciarGrabacion();
+$("btnSesion").onclick = () => descargarCsv(sesion.filas, sesion.inicio, "sesion");
+window.addEventListener("beforeunload", e => { if (sesion.filas.length) { e.preventDefault(); e.returnValue = ""; } });
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT") return;
   if (e.key === "Escape" || e.key === " ") { e.preventDefault(); enviar("CLOSE"); }
@@ -382,17 +467,7 @@ function detenerGrabacion() {
   const g = grab; grab = null;
   $("btnGrabar").textContent = "Grabar"; $("btnGrabar").classList.remove("grabando");
   $("tiempoGrab").textContent = "";
-  if (!g.filas.length) return;
-  const t0 = g.filas[0][0];
-  const cab = `# IGNIS banco de ensayo; inicio ${g.inicio.toISOString()}; alarma ${st.alarma} bar; purga ${st.purga} bar; offset ${st.offset} bar\n` +
-              "t_s,volts,bar,valvula,flags,evento\n";
-  const csv = cab + g.filas.map(f => [((f[0] - t0) / 1000).toFixed(3), f[1], f[2], f[3], f[4], f[5] ? `"${f[5]}"` : ""].join(",")).join("\n");
-  const a = document.createElement("a");
-  const d = g.inicio, z = n => String(n).padStart(2, "0");
-  a.download = `ensayo_${d.getFullYear()}${z(d.getMonth() + 1)}${z(d.getDate())}_${z(d.getHours())}${z(d.getMinutes())}${z(d.getSeconds())}.csv`;
-  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-  a.click();
-  evento(`Grabación guardada (${g.filas.length} filas): ${a.download}`);
+  descargarCsv(g.filas, g.inicio, "ensayo");
 }
 
 // ---------------- Pintado ----------------
@@ -400,8 +475,9 @@ function zona() {
   if (st.p === null) return ["SIN DATOS", ""];
   if (st.flags & 4) return ["FALLA DE SENSOR", "peligro"];
   if (st.flags & 2) return ["PURGANDO", "peligro"];
-  if (st.p > st.alarma) return ["SOBRE ALARMA", "peligro"];
-  if (st.p > 0.8 * st.alarma) return ["CERCA DEL LÍMITE", "aviso"];
+  const pv = st.pf ?? st.p;
+  if (pv > st.alarma) return ["SOBRE ALARMA", "peligro"];
+  if (pv > 0.8 * st.alarma) return ["CERCA DEL LÍMITE", "aviso"];
   return ["NORMAL", "normal"];
 }
 
@@ -409,11 +485,12 @@ function pintarPresion() {
   const [txt, clase] = zona();
   $("panelPresion").className = clase;
   $("zona").textContent = txt;
-  $("presion").firstChild.nodeValue = st.p === null ? "–.––" : st.p.toFixed(2);
+  const pv = st.pf ?? st.p;
+  $("presion").firstChild.nodeValue = pv === null ? "–.––" : pv.toFixed(2);
   $("voltios").textContent = st.v === null ? "–" : st.v.toFixed(3);
   $("maximo").textContent = st.maximo === null ? "–" : st.maximo.toFixed(2);
   const esc = Math.max(st.purga * 1.15, 1);
-  $("barraValor").style.width = st.p === null ? "0" : Math.min(100, Math.max(0, st.p / esc * 100)) + "%";
+  $("barraValor").style.width = pv === null ? "0" : Math.min(100, Math.max(0, pv / esc * 100)) + "%";
   $("barraValor").style.background = clase === "peligro" ? "var(--peligro)" : clase === "aviso" ? "var(--aviso)" : "var(--abierta)";
   const barra = $("barra");
   barra.querySelectorAll(".marca").forEach(m => m.remove());
@@ -522,10 +599,10 @@ function cuadro() {
 // ---------------- Simulador (?demo) ----------------
 // Imita banco.ino: tanque que se presuriza con un compresor lento y se descarga al abrir.
 const simulador = {
-  t0: 0, p: 0, cargando: true, fijar: 0, fijando: false, tFin: 0, avisada: false, abierta: false, pulsoFin: 0, purgando: false, offset: 0, timer: null, tAb: 0,
+  t0: 0, p: 0, pfil: null, tSobre: 0, cargando: true, fijar: 0, fijando: false, tFin: 0, avisada: false, abierta: false, pulsoFin: 0, purgando: false, offset: 0, timer: null, tAb: 0,
   iniciar() {
     this.t0 = performance.now(); this.p = 0;
-    setTimeout(() => { linea("E,0,LISTO banco v2 (demo)"); this.config(); }, 100);
+    setTimeout(() => { linea("E,0,LISTO banco v3 (demo)"); this.config(); }, 100);
     this.timer = setInterval(() => this.paso(), 50);
   },
   detener() { clearInterval(this.timer); },
@@ -552,29 +629,41 @@ const simulador = {
   },
   paso() {
     const dt = 0.05;
-    if (this.cargando) this.p += dt * 0.12;               // compresor lento
-    if (this.abierta) this.p -= dt * this.p * 0.9;        // descarga
+    if (this.cargando) this.p += dt * 0.05;               // compresor: ~0,05 bar/s, como en el video de la prueba
+    if (this.abierta) this.p -= dt * this.p * 0.035;      // descarga lenta: 1,0 a 0,5 bar en ~20 s, como en el video
     this.p = Math.max(0, this.p);
-    const lect = this.p - this.offset + (Math.random() - .5) * 0.02;
+    const lect = this.p - this.offset + (Math.random() - .5) * 0.06;    // ruido parecido al del banco real
     if (this.pulsoFin && performance.now() > this.pulsoFin) this.cerrar("(fin de pulso)");
     if (this.abierta && !this.pulsoFin && !this.purgando && performance.now() - this.tAb > st.maxAb * 1000) this.cerrar("(tiempo maximo)");
-    if (lect > st.purga && !this.purgando) { this.abrir("(PURGA por sobrepresion)"); this.purgando = true; this.pulsoFin = 0; }
-    else if (this.purgando && lect < st.purga - 0.3) this.cerrar("(fin de purga)");
+    this.pfil = this.pfil === null ? lect : this.pfil + (0.05 / 0.55) * (lect - this.pfil);
+    const pf = this.pfil;
+    if (pf > st.purga && !this.purgando) { this.abrir("(PURGA por sobrepresion)"); this.purgando = true; this.pulsoFin = 0; }
+    else if (this.purgando && pf < st.purga - 0.3) this.cerrar("(fin de purga)");
     const ahora = performance.now();
     if (this.fijar > 0 && !this.purgando) {
-      if (this.fijando) { if (lect <= this.fijar + 0.02) { this.cerrar("(presion fijada)"); this.tFin = ahora; } }
-      else if (!this.abierta && lect > this.fijar + 0.05 && ahora - this.tFin >= 1000) { this.abrir("(fijar presion)"); this.fijando = true; this.avisada = false; }
-      else if (!this.abierta && !this.avisada && lect <= this.fijar + 0.05 && ahora - this.tFin >= 1000) { this.ev(`PRESION EN ${lect.toFixed(2)} bar (fijada ${this.fijar.toFixed(2)})`); this.avisada = true; }
+      const banda = Math.max(0.10, 0.05 * this.fijar);
+      if (this.fijando) { if (pf <= this.fijar + 0.02) { this.cerrar("(presion fijada)"); this.tFin = ahora; this.tSobre = 0; } }
+      else if (!this.abierta && pf > this.fijar + banda) {
+        if (!this.tSobre) this.tSobre = ahora;
+        if (ahora - this.tSobre >= 500 && ahora - this.tFin >= 1000) { this.abrir("(fijar presion)"); this.fijando = true; this.avisada = false; }
+      } else if (!this.abierta) {
+        this.tSobre = 0;
+        if (!this.avisada && ahora - this.tFin >= 1000) { this.ev(`PRESION EN ${pf.toFixed(2)} bar (fijada ${this.fijar.toFixed(2)})`); this.avisada = true; }
+      }
     }
-    const flags = (lect > st.alarma ? 1 : 0) | (this.purgando ? 2 : 0) | (this.fijar > 0 ? 8 : 0);
-    linea(`D,${this.t()},${(0.5 + (lect + this.offset) / 10).toFixed(4)},${lect.toFixed(3)},${this.abierta ? 1 : 0},${flags}`);
+    const flags = (pf > st.alarma ? 1 : 0) | (this.purgando ? 2 : 0) | (this.fijar > 0 ? 8 : 0);
+    linea(`D,${this.t()},${(0.5 + (lect + this.offset) / 10).toFixed(4)},${lect.toFixed(3)},${this.abierta ? 1 : 0},${flags},${pf.toFixed(3)}`);
   },
 };
 
 // ---------------- Arranque ----------------
 if (!DEMO && !("serial" in navigator)) $("aviso").classList.add("ver");
 if (DEMO) { document.title += " (demo)"; $("textoCx").textContent = "Demo: presiona Conectar"; }
-navigator.serial?.addEventListener?.("disconnect", () => desconectado());
+if (!DEMO && "serial" in navigator) {
+  navigator.serial.addEventListener("connect", () => { if (!st.conectado && !cierreManual) intentarReconectar(); });
+  // Si el puerto ya fue autorizado antes, se conecta solo al abrir la página
+  puertoConocido().then(p => { if (p && !st.conectado) { evento("Conectando al puerto ya autorizado…"); abrir(p, "USB").catch(e => evento("No se pudo abrir: " + e.message, true)); } });
+}
 cuadro();
 </script>
 </body>

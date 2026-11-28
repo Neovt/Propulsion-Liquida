@@ -19,6 +19,7 @@ Código y archivos de fabricación viven fuera de las bitácoras y se referencia
 | 2026-11-26 | [Primera prueba del transmisor de presión](2026-11-26_transmisor_presion_prueba.md) | Montaje y prueba del XDB401 con ADS1115 a presión atmosférica; el desfase de 0,15 V se debía a que el cable estaba soldado en A1 y el código leía A0; estimación de consumo en los 12 V; pendientes de la prueba con presión | borrador |
 | 2026-11-27 | [Interfaz del banco de ensayo](2026-11-27_interfaz_banco.md) | Programa único del ESP32 (presión a 20 Hz + válvula con seguridad local: cierre por pérdida de comunicación y purga por sobrepresión) e interfaz HTML en Chrome con gráfico y grabación a CSV | borrador |
 | 2026-11-27 | [Primera prueba integrada del banco](2026-11-27_primera_prueba_integrada.md) | Compresor + transmisor + solenoide + interfaz, hasta ~1,8 bar; fallas de cableado resueltas (SCL desoldado, cable del driver cortado por dentro); fuga cerca de la válvula de bola sobre 1,4 bar; desconexiones del ESP32 al arrancar el compresor; mejoras propuestas | borrador |
+| 2026-11-27 | [Banco v3 y análisis del video](2026-11-27_banco_v3_y_analisis_video.md) | Video de la prueba: la descarga es ~15× más lenta de lo esperado (hipótesis: válvula de piloto que no abre del todo a baja presión). Firmware v3 con presión filtrada y fijar presión robusto; interfaz con reconexión automática y registro de sesión siempre activo; README raíz y de piezas | borrador |
 
 ## Cómo agregar una entrada
 
