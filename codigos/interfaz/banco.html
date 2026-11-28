@@ -538,8 +538,10 @@ function pintarGrafico() {
   const pMax = Math.max(st.purga * 1.1, ...hist.map(h => h.p), 0.5);
   const pMin = Math.min(0, ...hist.map(h => h.p));
   const X = t => iz + (W - iz - de) * (1 - (ahora - t) / (VENTANA_S * 1000));
-  // Escala comprimida (raíz cuadrada): más espacio para las presiones bajas
-  const f = p => escalaComprimida ? Math.sign(p) * Math.sqrt(Math.abs(p)) : p;
+  // Escala comprimida: logarítmica suave, ln(1 + p/0,5). Da más espacio a las presiones bajas
+  // (0-1 bar ≈ la mitad del alto hasta 4 bar) sin agrandar el ruido cerca de 0, como hacía la raíz.
+  const P0 = 0.5;
+  const f = p => escalaComprimida ? Math.sign(p) * Math.log1p(Math.abs(p) / P0) : p;
   const Y = p => ar + (H - ar - ab) * (1 - (f(p) - f(pMin)) / (f(pMax) - f(pMin)));
 
   // Válvula abierta: franjas
@@ -556,7 +558,7 @@ function pintarGrafico() {
   // Rejilla
   const paso = [0.1, 0.2, 0.5, 1, 2, 5, 10].find(s => (pMax - pMin) / s <= 6) || 10;
   const marcas = escalaComprimida
-    ? [-0.5, 0, 0.25, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 8, 10, 15, 20, 30, 40].filter(m => m >= pMin - 1e-9 && m <= pMax + 1e-9)
+    ? [-0.5, 0, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 8, 10, 15, 20, 30, 40].filter(m => m >= pMin - 1e-9 && m <= pMax + 1e-9)
     : (() => { const a = []; for (let p = Math.ceil(pMin / paso) * paso; p <= pMax + 1e-9; p += paso) a.push(+p.toFixed(3)); return a; })();
   cx.font = "11px " + getComputedStyle(document.body).getPropertyValue("--mono");
   cx.fillStyle = "#6f6d68"; cx.strokeStyle = "#e3e0da"; cx.lineWidth = 1;
@@ -646,7 +648,7 @@ const simulador = {
     if (this.cargando) this.p += dt * 0.12;               // compresor lento (valor provisorio, a ajustar con datos reales)
     if (this.abierta) this.p -= dt * this.p * 0.9;        // descarga rápida (valor provisorio, a ajustar con datos reales)
     this.p = Math.max(0, this.p);
-    const lect = this.p - this.offset + (Math.random() - .5) * 0.06;    // ruido parecido al del banco real
+    const lect = this.p - this.offset + (Math.random() - .5) * 0.01;    // ruido de ±0,005 bar, del orden del banco real en reposo
     if (this.pulsoFin && performance.now() > this.pulsoFin) this.cerrar("(fin de pulso)");
     if (this.abierta && !this.pulsoFin && !this.purgando && performance.now() - this.tAb > st.maxAb * 1000) this.cerrar("(tiempo maximo)");
     this.pfil = this.pfil === null ? lect : this.pfil + (0.05 / 0.55) * (lect - this.pfil);
