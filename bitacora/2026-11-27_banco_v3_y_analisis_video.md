@@ -93,3 +93,25 @@ La descarga observada equivale, en cambio, a un paso efectivo de **~1,2–1,3 mm
 3. **Descargar la sesión** al final, siempre.
 4. Medir el **tiempo de descarga** desde 0,5, 1, 2 y 3 bar, y revisar la flecha de la válvula y la pieza de la salida (sección 1).
 5. Alejar el compresor de la electrónica y ver si siguen las desconexiones.
+
+## 4. Fe de erratas (misma noche): la descarga lenta era el inyector impreso, no la solenoide
+
+Matías aclaró la causa después de leer la sección 1:
+
+- **La pieza negra sobre la solenoide es el inyector de prueba impreso en PLA** ([`../piezas/inyector_impreso/`](../piezas/inyector_impreso/), bitácora del 26-11), atornillado a la salida de la válvula.
+- **Salió mal impreso.** El orificio quedó mucho más chico que el diseñado (Ø2), sin medir todavía, y el cono de aire salía **hacia un solo lado** (la izquierda), no simétrico.
+- **Lo dejó a propósito**, para ver cómo se comporta el sistema con una obstrucción, como pasaría en un caso real.
+
+Por lo tanto:
+
+- La **hipótesis 3** de la sección 1 (restricción en la salida) era la correcta. Las hipótesis 1 (válvula de piloto que no abre del todo) y 2 (válvula al revés) **se descartan como causa** de esta descarga lenta.
+- **Paso efectivo del inyector mal impreso:** el ~1,2–1,3 mm estimado en la sección 1 sería el del inyector, no el de la válvula. Sigue siendo una estimación gruesa, porque el volumen del tanque no está medido. Es menor que el Ø2 del diseño, lo que calza con un orificio parcialmente tapado por la impresión.
+- **Prueba de descarga libre:** con ~1,6 bar, Matías desconectó el acople rápido del compresor y abrió la llave de entrada. El aire salió de golpe, muy rápido, e incluso **hizo temblar el tanque** por el empuje. Esa descarga sale por la llave y el acople, no por la solenoide.
+- **Estado de la solenoide:** según Matías, con la válvula abierta se comporta bien. **No hay todavía una descarga medida por la solenoide sin el inyector**; conviene hacerla para tener la curva de referencia.
+
+**Para la próxima prueba**, el pendiente 4 de la sección 3 queda así:
+- grabar una descarga por la solenoide **sin** el inyector y otra **con** el inyector;
+- medir el orificio del inyector mal impreso (con una broca o aguja calibrada como galga);
+- reimprimir el inyector revisando la configuración: la orientación, los soportes internos y la calibración de flujo de la impresora.
+
+Con eso, la diferencia entre las dos curvas da el paso efectivo del inyector.
