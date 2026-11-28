@@ -629,8 +629,8 @@ const simulador = {
   },
   paso() {
     const dt = 0.05;
-    if (this.cargando) this.p += dt * 0.05;               // compresor: ~0,05 bar/s, como en el video de la prueba
-    if (this.abierta) this.p -= dt * this.p * 0.035;      // descarga lenta: 1,0 a 0,5 bar en ~20 s, como en el video
+    if (this.cargando) this.p += dt * 0.12;               // compresor lento (valor provisorio, a ajustar con datos reales)
+    if (this.abierta) this.p -= dt * this.p * 0.9;        // descarga rápida (valor provisorio, a ajustar con datos reales)
     this.p = Math.max(0, this.p);
     const lect = this.p - this.offset + (Math.random() - .5) * 0.06;    // ruido parecido al del banco real
     if (this.pulsoFin && performance.now() > this.pulsoFin) this.cerrar("(fin de pulso)");

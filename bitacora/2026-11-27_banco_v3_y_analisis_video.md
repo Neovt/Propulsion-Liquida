@@ -136,3 +136,7 @@ Las observaciones salen de cuadros del video cada 2,5 s. Son lo que se ve, no me
 5. **Ordenar el cableado:** una caja firme, cables soldados o con conectores, alivio de tensión en el cable de la fuente y el USB lejos de los cables del compresor.
 6. **Ensayo de calentamiento de la bobina:** a ~9 W, conviene medir su temperatura tras 60 s abierta antes de usar aperturas largas. Hoy el máximo es 60 s.
 7. **Hipótesis para las desconexiones:** si ocurren ~15 s después de encender el compresor, puede coincidir con el corte de su presostato o la descarga de su válvula de alivio interna (motor que se detiene y pico eléctrico). Vale la pena anotar si coincide con ese "pssst" del compresor.
+
+## 6. Corrección del simulador
+
+El simulador del modo demo se había ajustado a la descarga lenta del video, que se debía al inyector tapado. Pedido por Matías, vuelve a los valores anteriores (carga 0,12 bar/s, descarga rápida). Son provisorios: se ajustarán cuando haya datos crudos grabados. Se mantienen la lógica v3 y el ruido de ±0,03 bar.
